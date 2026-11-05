@@ -10,6 +10,8 @@ namespace BatchConvertToCompressedFile;
 
 public partial class App : IDisposable
 {
+    private const string NativeLibraryResourcePrefix = "BatchConvertToCompressedFile.Native";
+
     private readonly BugReportService? _bugReportService;
 
     public static BugReportService? SharedBugReportService { get; private set; }
@@ -59,34 +61,29 @@ public partial class App : IDisposable
     {
         try
         {
-            // Determine the path to the 7z dll based on the process architecture.
-            string dllName;
+            var dllName = GetNativeLibraryName();
+            var baseDirectory = AppContext.BaseDirectory;
 
-            if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+            // Prefer a native library deployed next to the application. If it is missing, fall back
+            // to the copy embedded in the application.
+            string? dllPath = Path.Combine(baseDirectory, dllName);
+            if (!File.Exists(dllPath))
             {
-                dllName = "7z_arm64.dll";
-            }
-            else
-            {
-                dllName = Environment.Is64BitProcess ? "7z_x64.dll" : "7z_x86.dll";
+                dllPath = ExtractEmbeddedLibrary(dllName);
             }
 
-            var dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dllName);
-
-            if (File.Exists(dllPath))
+            if (dllPath != null)
             {
                 SevenZipBase.SetLibraryPath(dllPath);
+                return;
             }
-            else
+
+            // Notify developer. Extraction will likely fail if the embedded fallback is unavailable.
+            var errorMessage =
+                $"Could not find the required 7-Zip library: {dllName} in {baseDirectory}";
+            if (_bugReportService != null)
             {
-                // Notify developer
-                // If the specific DLL is not found, log an error. Extraction will likely fail.
-                var errorMessage =
-                    $"Could not find the required 7-Zip library: {dllName} in {AppDomain.CurrentDomain.BaseDirectory}";
-                if (_bugReportService != null)
-                {
-                    _ = _bugReportService.SendBugReportAsync(errorMessage);
-                }
+                _ = _bugReportService.SendBugReportAsync(errorMessage);
             }
         }
         catch (Exception ex)
@@ -95,6 +92,81 @@ public partial class App : IDisposable
             if (_bugReportService != null)
             {
                 _ = _bugReportService.SendBugReportAsync(ex.Message);
+            }
+        }
+    }
+
+    private static string GetNativeLibraryName()
+    {
+        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        {
+            return "7z_arm64.dll";
+        }
+
+        return Environment.Is64BitProcess ? "7z_x64.dll" : "7z_x86.dll";
+    }
+
+    /// <summary>
+    /// Extracts the architecture-specific 7-Zip library embedded in the application when it is not
+    /// deployed alongside the executable (for example, when a launcher copies only the executable).
+    /// </summary>
+    private static string? ExtractEmbeddedLibrary(string dllName)
+    {
+        var assembly = typeof(App).Assembly;
+        var resourceName = $"{NativeLibraryResourcePrefix}.{dllName}";
+        using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+        if (resourceStream == null)
+        {
+            return null;
+        }
+
+        var version = assembly.GetName().Version?.ToString() ?? "unknown";
+        var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrEmpty(localApplicationData))
+        {
+            localApplicationData = Path.GetTempPath();
+        }
+
+        var targetDirectory = Path.Combine(localApplicationData, AppConfig.ApplicationName, "native", version);
+        var targetPath = Path.Combine(targetDirectory, dllName);
+
+        if (File.Exists(targetPath))
+        {
+            if (new FileInfo(targetPath).Length == resourceStream.Length)
+            {
+                return targetPath;
+            }
+
+            // Replace a stale or corrupted copy from a previous run.
+            File.Delete(targetPath);
+        }
+
+        Directory.CreateDirectory(targetDirectory);
+        var temporaryPath = Path.Combine(targetDirectory, $"{dllName}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var destinationStream = File.Create(temporaryPath))
+            {
+                resourceStream.CopyTo(destinationStream);
+            }
+
+            try
+            {
+                File.Move(temporaryPath, targetPath);
+            }
+            catch (IOException) when (File.Exists(targetPath) &&
+                                      new FileInfo(targetPath).Length == resourceStream.Length)
+            {
+                // Another application instance extracted the same library first.
+            }
+
+            return targetPath;
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
             }
         }
     }

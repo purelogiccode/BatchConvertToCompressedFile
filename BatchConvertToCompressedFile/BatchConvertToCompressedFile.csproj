@@ -40,6 +40,9 @@
     <None Update="7z_x86.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <EmbeddedResource Include="7z_arm64.dll" LogicalName="BatchConvertToCompressedFile.Native.7z_arm64.dll" />
+    <EmbeddedResource Include="7z_x64.dll" LogicalName="BatchConvertToCompressedFile.Native.7z_x64.dll" />
+    <EmbeddedResource Include="7z_x86.dll" LogicalName="BatchConvertToCompressedFile.Native.7z_x86.dll" />
   </ItemGroup>
 
 </Project>
