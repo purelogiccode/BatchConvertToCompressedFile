@@ -82,8 +82,9 @@ existing files:
 | `BatchConvertToCompressedFile_2.0.0_osx-x64.tar.gz` | 14.7 MB |
 | `BatchConvertToCompressedFile_2.0.0_osx-arm64.tar.gz` | 14.7 MB |
 
-Each bundle contains exactly one application executable plus `LICENSE`, `ReadMe.md`, and
-`WhatsNew.md`. The builds are framework-dependent single-file; the .NET runtime is not embedded.
+Each bundle contains exactly one application executable plus `LICENSE` (GNU GPL v3),
+`ReadMe.md`, and `WhatsNew.md`. The builds are framework-dependent single-file; the .NET runtime is
+not embedded.
 Linux/macOS tar entries use `0755` for the executable and `0644` for documents. The Windows x64
 bundle was extracted and launched successfully. `file` reports a Linux x86-64 ELF executable and
 a macOS arm64 Mach-O executable.

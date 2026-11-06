@@ -1,1 +1,1 @@
-Batch Convert to Compressed File · MIT License · [Pure Logic Code](https://www.purelogiccode.com)
+Batch Convert to Compressed File · GNU GPL v3 · [Pure Logic Code](https://www.purelogiccode.com)

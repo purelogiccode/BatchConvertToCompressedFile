@@ -4,8 +4,14 @@
 [![CodeQL](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/codeql.yml/badge.svg)](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/codeql.yml)
 [![Documentation](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/docs.yml/badge.svg)](https://purelogiccode.github.io/BatchConvertToCompressedFile/)
 [![Latest release](https://img.shields.io/github/v/release/purelogiccode/BatchConvertToCompressedFile?display_name=tag&sort=semver)](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/latest)
-[![License: MIT](https://img.shields.io/github/license/purelogiccode/BatchConvertToCompressedFile)](LICENSE)
+[![Release date](https://img.shields.io/github/release-date/purelogiccode/BatchConvertToCompressedFile?label=released)](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/purelogiccode/BatchConvertToCompressedFile/total?label=downloads)](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases)
+[![Last commit](https://img.shields.io/github/last-commit/purelogiccode/BatchConvertToCompressedFile)](https://github.com/purelogiccode/BatchConvertToCompressedFile/commits/master)
+[![Stars](https://img.shields.io/github/stars/purelogiccode/BatchConvertToCompressedFile?label=stars)](https://github.com/purelogiccode/BatchConvertToCompressedFile/stargazers)
+[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-6366F1)](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/latest)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![Avalonia 12](https://img.shields.io/badge/Avalonia-12-8B44F7)](https://avaloniaui.net/)
 
 A cross-platform desktop utility for **batch compressing files** into individual `.7z` or `.zip`
 archives and **verifying the integrity** of existing `.7z`, `.zip`, and `.rar` archives.
@@ -136,7 +142,7 @@ See [`SECURITY.md`](SECURITY.md) for the full policy.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+GNU General Public License v3.0 — see [`LICENSE`](LICENSE).
 
 ## Support this project
 
