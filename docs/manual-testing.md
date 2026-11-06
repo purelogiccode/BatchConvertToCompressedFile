@@ -22,6 +22,18 @@ dotnet test CSharp_BatchConvertToCompressedFile.sln -c Release
 
 Expected: **120 tests passed, 0 failed** (count grows as tests are added).
 
+## Release bundle checks
+
+1. Confirm each of the six bundles exists in the release output.
+2. Confirm every bundle contains the application executable, `LICENSE`, `ReadMe.md`, and
+   `WhatsNew.md`.
+3. Confirm the executable is a framework-dependent single-file build and the .NET runtime is not
+   embedded.
+4. Extract and launch Windows x64 and Linux x64 with the .NET 10 runtime installed.
+5. Confirm the About window reports version `2.0.0`.
+6. Confirm the GitHub release assets match `BatchConvertToCompressedFile_<version>_<rid>.zip|tar.gz`.
+7. Confirm the GitHub Pages site and Wiki both show the current documentation and a side menu.
+
 ## Windows UI
 
 1. Launch `BatchConvertToCompressedFile.exe`.

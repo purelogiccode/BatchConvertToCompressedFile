@@ -40,13 +40,12 @@ internal static class OsEnvironmentInfo
         {
             if (!File.Exists(osReleasePath)) return null;
 
-            foreach (var line in File.ReadLines(osReleasePath))
-            {
-                if (!line.StartsWith("PRETTY_NAME=", StringComparison.Ordinal)) continue;
+            var value = File.ReadLines(osReleasePath)
+                .Where(line => line.StartsWith("PRETTY_NAME=", StringComparison.Ordinal))
+                .Select(line => line["PRETTY_NAME=".Length..].Trim().Trim('"'))
+                .FirstOrDefault(prettyName => !string.IsNullOrWhiteSpace(prettyName));
 
-                var value = line["PRETTY_NAME=".Length..].Trim().Trim('"');
-                return string.IsNullOrWhiteSpace(value) ? null : value;
-            }
+            return value;
         }
         catch (Exception ex)
         {

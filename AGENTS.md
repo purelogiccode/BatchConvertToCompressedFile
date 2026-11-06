@@ -36,7 +36,7 @@ dotnet run --project BatchConvertToCompressedFile
 Publish any supported runtime:
 
 ```powershell
-dotnet publish BatchConvertToCompressedFile -c Release -r win-x64 --self-contained true `
+dotnet publish BatchConvertToCompressedFile -c Release -r win-x64 --self-contained false `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/win-x64
 ```
 

@@ -1,5 +1,12 @@
 # Batch Convert to Compressed File
 
+[![CI](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/ci.yml/badge.svg)](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/codeql.yml/badge.svg)](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/codeql.yml)
+[![Documentation](https://github.com/purelogiccode/BatchConvertToCompressedFile/actions/workflows/docs.yml/badge.svg)](https://purelogiccode.github.io/BatchConvertToCompressedFile/)
+[![Latest release](https://img.shields.io/github/v/release/purelogiccode/BatchConvertToCompressedFile?display_name=tag&sort=semver)](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/purelogiccode/BatchConvertToCompressedFile)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-6366F1)](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/latest)
+
 A cross-platform desktop utility for **batch compressing files** into individual `.7z` or `.zip`
 archives and **verifying the integrity** of existing `.7z`, `.zip`, and `.rar` archives.
 
@@ -10,20 +17,20 @@ on both **x64** and **arm64**.
 
 ## Features
 
-- **Batch compression** - one archive per file, `.7z` (LZMA2) or `.zip` (Deflate)
-- **Archive verification** - `.7z`, `.zip`, and `.rar`, with full size and CRC-32 checks
-- **Flexible file management** - optionally delete originals after compression, or move verified
+- **Batch compression** — one archive per file, `.7z` (LZMA2) or `.zip` (Deflate)
+- **Archive verification** — `.7z`, `.zip`, and `.rar`, with full size and CRC-32 checks
+- **Flexible file management** — optionally delete originals after compression, or move verified
   and failed archives into separate folders while preserving subfolders
-- **Live feedback** - progress bar, current file, elapsed time, write speed, and success/failure
-  statistics
-- **Live log on the right** - resizable activity log powered by Serilog
-- **Professional black/indigo theme** - tooltips on every control
-- **About window** - version, platform, runtime, and project links
-- **GitHub update check** - offers to open the download page when a newer release exists
-- **Donation banner** - disappears permanently only after a donation is verified by the API
-- **Startup statistics** - anonymous application ID and version sent to the stats endpoint
-- **Automatic bug reports** - every Warning+ Serilog event is forwarded to the bug report API
-- **Fully managed archive engine** - no native 7-Zip binaries on any platform
+- **Live feedback** — progress bar, current file, elapsed time, write speed, and total/success/
+  failed/skipped statistics
+- **Live log on the right** — resizable activity log powered by Serilog
+- **Professional black/indigo theme** — tooltips on every control
+- **About window** — version, platform, runtime, and project links
+- **GitHub update check** — offers to open the download page when a newer release exists
+- **Donation banner** — disappears permanently only after a donation is verified by the API
+- **Startup statistics** — anonymous application ID and version sent to the stats endpoint
+- **Automatic bug reports** — every Warning+ Serilog event is forwarded to the bug report API
+- **Fully managed archive engine** — no native 7-Zip binaries on any platform
 
 ## Downloads
 
@@ -32,15 +39,17 @@ Pick the asset for your platform from the
 
 | Platform | x64 | arm64 |
 | --- | --- | --- |
-| Windows | `..._win-x64.zip` | `..._win-arm64.zip` |
-| Linux | `..._linux-x64.tar.gz` | `..._linux-arm64.tar.gz` |
-| macOS | `..._osx-x64.tar.gz` | `..._osx-arm64.tar.gz` |
+| Windows | `BatchConvertToCompressedFile_<version>_win-x64.zip` | `BatchConvertToCompressedFile_<version>_win-arm64.zip` |
+| Linux | `BatchConvertToCompressedFile_<version>_linux-x64.tar.gz` | `BatchConvertToCompressedFile_<version>_linux-arm64.tar.gz` |
+| macOS | `BatchConvertToCompressedFile_<version>_osx-x64.tar.gz` | `BatchConvertToCompressedFile_<version>_osx-arm64.tar.gz` |
 
-Each release also publishes `checksums.txt` with SHA-256 hashes.
+Each bundle contains the application, `LICENSE`, `ReadMe.md`, and `WhatsNew.md`. The release also
+publishes `checksums.txt` with SHA-256 hashes.
 
 ## Requirements
 
-- **Releases:** self-contained; no .NET installation required
+- **Releases:** framework-dependent single-file build — install the **.NET 10 runtime** for your
+  platform. The .NET runtime is intentionally **not** embedded in the executable.
 - **From source:** .NET 10 SDK
 - **Linux/macOS:** a graphical desktop session (X11, Wayland, or Aqua)
 
@@ -54,7 +63,8 @@ Each release also publishes `checksums.txt` with SHA-256 hashes.
 4. Optionally enable deletion of originals after successful compression.
 5. Click **Start compression**.
 
-Existing archives are skipped and never overwritten.
+Existing archives are skipped and never overwritten. Files with duplicate base names are written
+as `name.zip`, `name (2).zip`, and so on.
 
 ### Verify archives
 
@@ -79,19 +89,21 @@ Run:
 dotnet run --project BatchConvertToCompressedFile
 ```
 
-Publish for any RID:
+Publish a framework-dependent single-file bundle for any RID:
 
 ```powershell
-dotnet publish BatchConvertToCompressedFile -c Release -r linux-arm64 --self-contained true `
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/linux-arm64
+dotnet publish BatchConvertToCompressedFile -c Release -r linux-arm64 --self-contained false `
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=embedded `
+  -o artifacts/linux-arm64
 ```
 
 Supported RIDs: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
 
 ## Documentation
 
-Full documentation lives in [`docs/`](docs/index.md):
-
+- [Documentation site](https://purelogiccode.github.io/BatchConvertToCompressedFile/)
+- [GitHub wiki](https://github.com/purelogiccode/BatchConvertToCompressedFile/wiki)
+- [What's new](WhatsNew.md)
 - [Getting started](docs/getting-started.md)
 - [User guide](docs/user-guide.md)
 - [Configuration](docs/configuration.md)
@@ -106,6 +118,7 @@ Full documentation lives in [`docs/`](docs/index.md):
 - [Manual testing](docs/manual-testing.md)
 - [Validation report](docs/validation-report.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [FAQ](docs/faq.md)
 
 ## CI/CD
 
@@ -113,13 +126,17 @@ Full documentation lives in [`docs/`](docs/index.md):
 - Cross-publish validation for all six RIDs
 - Tag-driven releases with ZIP/TAR.GZ packages and SHA-256 checksums
 - CodeQL, Dependency Review, Dependabot, and NuGet audit
-- MkDocs Material documentation deployed to GitHub Pages
+- MkDocs Material documentation deployed to GitHub Pages and GitHub Wiki
 
 ## Security
 
 Please report vulnerabilities privately through
 [GitHub Security Advisories](https://github.com/purelogiccode/BatchConvertToCompressedFile/security/advisories/new).
 See [`SECURITY.md`](SECURITY.md) for the full policy.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
 
 ## Support this project
 

@@ -1,0 +1,13 @@
+name: CodeQL configuration
+
+paths-ignore:
+  - BatchConvertToCompressedFile.Tests/**
+  - artifacts/**
+  - _site/**
+  - wiki-build/**
+
+query-filters:
+  # UI, service, and process boundaries intentionally convert all exceptions into
+  # user-facing errors or log entries. They are not swallowed silently.
+  - exclude:
+      id: cs/catch-of-all-exceptions

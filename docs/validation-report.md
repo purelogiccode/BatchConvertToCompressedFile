@@ -22,8 +22,8 @@
 
 ## Publishing
 
-All six RIDs were published with `--self-contained`, single-file, embedded symbols, from both
-Windows and Linux:
+All six RIDs are published as **framework-dependent single-file** builds with embedded symbols.
+The .NET runtime is intentionally not embedded in the executable.
 
 - `win-x64`
 - `win-arm64`

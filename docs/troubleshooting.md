@@ -2,6 +2,8 @@
 
 ## The app does not start
 
+- **All platforms:** install the **.NET 10 runtime**. Release bundles are framework-dependent
+  single-file builds and do not include the runtime.
 - **Windows:** confirm the extracted folder is writable and the ZIP was fully extracted.
 - **Linux:** run from a desktop session, not a headless SSH session. Check that `DISPLAY` or
   `WAYLAND_DISPLAY` is set.

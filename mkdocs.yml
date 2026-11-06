@@ -17,12 +17,18 @@ theme:
     accent: indigo
   features:
     - navigation.sections
+    - navigation.expand
     - navigation.top
     - navigation.instant
+    - navigation.tracking
     - search.suggest
     - search.highlight
     - content.code.copy
     - toc.follow
+
+exclude_docs: |
+  _Sidebar.md
+  _Footer.md
 
 markdown_extensions:
   - admonition
@@ -35,6 +41,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - What's new: whats-new.md
   - Getting started: getting-started.md
   - User guide: user-guide.md
   - Configuration: configuration.md

@@ -41,12 +41,15 @@ All six supported RIDs:
 $rids = 'win-x64','win-arm64','linux-x64','linux-arm64','osx-x64','osx-arm64'
 foreach ($rid in $rids) {
   dotnet publish BatchConvertToCompressedFile -c Release -r $rid `
-    --self-contained true `
+    --self-contained false `
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:DebugType=embedded `
     -o "artifacts/$rid"
 }
 ```
+
+The .NET runtime is not embedded; install the .NET 10 runtime on the target machine.
 
 Test framework-dependent publish:
 
@@ -58,8 +61,11 @@ dotnet publish BatchConvertToCompressedFile -c Release -r linux-x64 --self-conta
 
 | Platform | Format | Command |
 | --- | --- | --- |
-| Windows | `.zip` | `Compress-Archive -Path artifacts/win-x64/* -DestinationPath release_win-x64.zip` |
-| Linux/macOS | `.tar.gz` | `tar -czf release_linux-x64.tar.gz -C artifacts/linux-x64 .` |
+| Windows | `.zip` | `Compress-Archive -Path artifacts/win-x64/* -DestinationPath BatchConvertToCompressedFile_2.0.0_win-x64.zip` |
+| Linux/macOS | `.tar.gz` | `tar -czf BatchConvertToCompressedFile_2.0.0_linux-x64.tar.gz -C artifacts/linux-x64 .` |
+
+Before packaging, copy `LICENSE`, `ReadMe.md`, and `WhatsNew.md` into each publish folder. Every
+bundle should contain the single application executable plus those three documents.
 
 Release workflow names:
 

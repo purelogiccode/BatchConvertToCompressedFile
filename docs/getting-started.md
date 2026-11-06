@@ -4,12 +4,14 @@
 
 | Platform | Architectures | Notes |
 | --- | --- | --- |
-| Windows 10/11 | x64, arm64 | Self-contained release bundles include .NET 10 |
-| Linux | x64, arm64 | Requires a desktop session (X11 or Wayland) |
-| macOS | x64, arm64 | Intel and Apple Silicon |
+| Windows 10/11 | x64, arm64 | Install the .NET 10 runtime |
+| Linux | x64, arm64 | Install the .NET 10 runtime; requires X11 or Wayland |
+| macOS | x64, arm64 | Install the .NET 10 runtime; Intel and Apple Silicon |
 
-The application is self-contained in official releases. Building from source requires the
-**.NET 10 SDK**.
+Official release bundles are **framework-dependent single-file** builds. They contain one
+application executable and do **not** embed the .NET runtime. Install the
+[.NET 10 runtime](https://dotnet.microsoft.com/download/dotnet/10.0) before launching the app.
+Building from source requires the **.NET 10 SDK**.
 
 ## Download and install
 
@@ -24,6 +26,13 @@ The application is self-contained in official releases. Building from source req
 3. Extract the archive anywhere you can write.
 4. Run `BatchConvertToCompressedFile` (`.exe` on Windows).
 5. Optionally verify the SHA-256 checksum published with the release.
+
+Each bundle contains:
+
+- `BatchConvertToCompressedFile` (`.exe` on Windows)
+- `LICENSE`
+- `ReadMe.md`
+- `WhatsNew.md`
 
 On Linux/macOS, make the executable runnable if your extractor removed the bit:
 
@@ -41,8 +50,9 @@ chmod +x BatchConvertToCompressedFile
 6. Click **Start compression**.
 
 Each source file becomes its own archive. Existing archives in the output folder are skipped and
-never overwritten. The live log is shown on the right, and progress and statistics are shown
-below the settings.
+never overwritten. If two source files share a base name, the second archive gets a numeric suffix
+(for example `report (2).zip`). The live log is shown on the right, and progress and statistics are
+shown below the settings.
 
 ## First verification
 
@@ -69,3 +79,4 @@ Use **File -> Open Log Folder** to reveal the log directory.
 - [User guide](user-guide.md)
 - [Configuration](configuration.md)
 - [Troubleshooting](troubleshooting.md)
+- [What's new](whats-new.md)

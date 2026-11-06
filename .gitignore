@@ -3,6 +3,7 @@ bin/
 obj/
 artifacts/
 _site/
+wiki-build/
 TestResults/
 coverage/
 *.trx

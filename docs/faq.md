@@ -8,6 +8,11 @@ Yes. It is donation-supported. The banner disappears after a verified donation.
 
 No. Archive handling is fully managed through SharpCompress.
 
+### Do I need the .NET runtime installed?
+
+Yes. Official bundles are framework-dependent single-file builds. Install the **.NET 10 runtime**;
+the runtime is intentionally not embedded in the executable.
+
 ### Which formats can it create?
 
 `.7z` (LZMA2) and `.zip` (Deflate).
