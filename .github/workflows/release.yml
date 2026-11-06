@@ -102,7 +102,7 @@ jobs:
           rm -rf "artifacts/$RID"
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: package-${{ matrix.rid }}
           path: artifacts/BatchConvertToCompressedFile_*
