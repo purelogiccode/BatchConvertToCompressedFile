@@ -93,6 +93,7 @@ The local folder contains exact copies of the published GitHub release assets. S
 
 ## Documentation deployment
 
+- GitHub release: <https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/tag/v2.0.0>
 - GitHub Pages: <https://purelogiccode.github.io/BatchConvertToCompressedFile/>
 - GitHub Wiki: <https://github.com/purelogiccode/BatchConvertToCompressedFile/wiki>
 
