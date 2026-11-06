@@ -51,6 +51,7 @@ Windows and Linux:
 | GitHub update check | Latest release read successfully |
 | Application statistics | Endpoint reached; `429` returned during testing because of the per-IP rate limit |
 | Donation verification (`batch-convert-to-compressed-file`) | **200** with `donated:false` for a non-donor email |
+| Donation banner UI (Windows) | Non-donor email verified live; banner stayed visible; log recorded `Donation verification did not find a donation` |
 | Product page | `https://www.purelogiccode.com/Product/batch-convert-to-compressed-file` returns 200 |
 | Donation page | `https://www.purelogiccode.com/Donate?app=batch-convert-to-compressed-file` returns 200 |
 
