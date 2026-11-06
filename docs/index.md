@@ -1,0 +1,54 @@
+# Batch Convert to Compressed File - Documentation
+
+A cross-platform desktop utility for **batch compressing files** into individual `.7z` or `.zip`
+archives and **verifying the integrity** of existing `.7z`, `.zip`, and `.rar` archives.
+
+Built with Avalonia 12, .NET 10, and SharpCompress. Runs on Windows, Linux, and macOS on both
+`x64` and `arm64`.
+
+## Start here
+
+| Page | What it covers |
+| --- | --- |
+| [Getting started](getting-started.md) | Install, run, and first batch |
+| [User guide](user-guide.md) | Compression, verification, progress, statistics, updates |
+| [Configuration](configuration.md) | Paths, environment variables, API endpoints |
+| [Logging and bug reports](logging-and-bug-reports.md) | Serilog, log files, report format |
+| [Donation](donation.md) | Banner behavior, verification API, privacy |
+| [Statistics](statistics.md) | Startup usage statistics |
+| [Architecture](architecture.md) | Projects, services, models, interfaces, threading |
+| [Building and testing](building-and-testing.md) | Local build, tests, publish |
+| [CI/CD](ci-cd.md) | GitHub Actions, release assets, checksums |
+| [Release process](release-process.md) | Tagging, packaging, update assets |
+| [Security](security.md) | Threat model, hardening, disclosure |
+| [Manual testing](manual-testing.md) | Windows, Linux VM, and macOS UI checklist |
+| [Validation report](validation-report.md) | Results of the latest build, test, and smoke runs |
+| [Troubleshooting](troubleshooting.md) | Common problems and fixes |
+| [FAQ](faq.md) | Short answers |
+| [Contributing](contributing.md) | Development conventions |
+
+## Features
+
+- Batch compression to `.7z` (LZMA2) or `.zip` (Deflate)
+- Batch verification of `.7z`, `.zip`, and `.rar` with full CRC checking
+- Optional deletion of originals after successful compression
+- Optional move of verified/failed archives with subfolder preservation
+- Resizable live log on the right, plus progress, elapsed time, write speed, and success/failure statistics
+- Cross-platform Avalonia UI with a black/indigo theme and tooltips on every control
+- About window, GitHub update check, donation banner, and application statistics
+- Automatic Serilog logging with Warning+ forwarding to the bug report API
+- Fully managed archive engine - no native 7-Zip binaries
+
+## Quick command reference
+
+```powershell
+dotnet build CSharp_BatchConvertToCompressedFile.sln -c Release
+dotnet test  CSharp_BatchConvertToCompressedFile.sln -c Release
+dotnet run   --project BatchConvertToCompressedFile
+```
+
+## Support
+
+- Website: <https://www.purelogiccode.com>
+- Repository: <https://github.com/purelogiccode/BatchConvertToCompressedFile>
+- Donate: <https://www.purelogiccode.com/Donate?app=batch-convert-to-compressed-file>

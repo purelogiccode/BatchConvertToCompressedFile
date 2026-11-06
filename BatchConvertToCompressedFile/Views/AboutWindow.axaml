@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BatchConvertToCompressedFile.Views.AboutWindow"
+        Title="About Batch Convert to Compressed File"
+        Icon="avares://BatchConvertToCompressedFile/icon/icon.ico"
+        Width="620"
+        Height="560"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Padding="26,24"
+            Background="{StaticResource BannerBrush}"
+            BorderBrush="{StaticResource AccentColor}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="20">
+        <Image Grid.Column="0" Source="avares://BatchConvertToCompressedFile/images/logo.png"
+               Width="96" Height="96"
+               ToolTip.Tip="Batch Convert to Compressed File logo" />
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+          <TextBlock Text="Batch Convert to Compressed File" Classes="h1" ToolTip.Tip="Application name" />
+          <TextBlock x:Name="VersionText" Text="Version" Classes="secondary"
+                     ToolTip.Tip="Installed application version" />
+          <TextBlock Text="by Pure Logic Code" Classes="muted" FontSize="12"
+                     ToolTip.Tip="Application publisher" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="26,22" Spacing="14">
+        <TextBlock x:Name="DescriptionText"
+                   Text="A modern, cross-platform utility for batch compressing files into individual .7z or .zip archives and verifying the integrity of existing .7z, .zip, and .rar archives."
+                   Classes="secondary"
+                   TextWrapping="Wrap"
+                   ToolTip.Tip="Application description" />
+
+        <Border Classes="card" Padding="16">
+          <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Platform" Classes="label"
+                       ToolTip.Tip="Operating system and CPU architecture" />
+            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="PlatformText" FontSize="12"
+                       ToolTip.Tip="Detected platform and architecture" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Runtime" Classes="label"
+                       ToolTip.Tip=".NET runtime version" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="RuntimeText" FontSize="12"
+                       ToolTip.Tip=".NET runtime used by this build" />
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Archive engine" Classes="label"
+                       ToolTip.Tip="Library used to create and verify archives" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="SharpCompress (fully managed)" FontSize="12"
+                       ToolTip.Tip="No native 7-Zip binaries are required" />
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Repository" Classes="label"
+                       ToolTip.Tip="Public source code repository" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="github.com/purelogiccode/BatchConvertToCompressedFile"
+                       FontSize="12" TextWrapping="Wrap"
+                       ToolTip.Tip="Project source code on GitHub" />
+          </Grid>
+        </Border>
+
+        <TextBlock Text="This application is donation-supported. If it saves you time, please consider supporting its development."
+                   Classes="secondary"
+                   TextWrapping="Wrap"
+                   ToolTip.Tip="Donations keep the application free and maintained" />
+
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Website" Click="OnWebsiteClick"
+                  ToolTip.Tip="Open purelogiccode.com in your browser" />
+          <Button Content="GitHub" Click="OnGitHubClick"
+                  ToolTip.Tip="Open the project repository in your browser" />
+          <Button Content="Donate" Classes="primary" Click="OnDonateClick"
+                  ToolTip.Tip="Open the donation page in your browser" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Row="2" Padding="20,12" Background="{StaticResource SurfaceColor}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Text="© Pure Logic Code. All rights reserved."
+                   Classes="muted" FontSize="12" VerticalAlignment="Center"
+                   ToolTip.Tip="Copyright notice" />
+        <Button Grid.Column="1" Content="Close" Classes="primary" Click="OnCloseClick"
+                ToolTip.Tip="Close the About window" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

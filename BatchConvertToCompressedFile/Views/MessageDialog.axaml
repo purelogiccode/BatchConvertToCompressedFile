@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BatchConvertToCompressedFile.Views.MessageDialog"
+        Width="500"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Message">
+  <Border Background="{StaticResource SurfaceBrush}"
+          BorderBrush="{StaticResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="12"
+          Padding="22">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
+      <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="14">
+        <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20"
+                Background="{StaticResource SurfaceRaisedBrush}"
+                ToolTip.Tip="Message type">
+          <TextBlock x:Name="IconText"
+                     Text="i"
+                     FontSize="20"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     Foreground="{StaticResource AccentBrush}" ToolTip.Tip="Message severity icon" />
+        </Border>
+        <TextBlock Grid.Column="1" x:Name="TitleText"
+                   FontSize="19"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap"
+                   ToolTip.Tip="Dialog title" />
+      </Grid>
+
+      <TextBlock Grid.Row="1" x:Name="MessageText"
+                 Classes="secondary"
+                 TextWrapping="Wrap"
+                 MaxHeight="360"
+                 ToolTip.Tip="Dialog message" />
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button x:Name="NoButton" Content="No" IsVisible="False"
+                Click="OnNoClick"
+                ToolTip.Tip="Decline and close this dialog" />
+        <Button x:Name="OkButton" Content="OK" Classes="primary"
+                Click="OnOkClick"
+                ToolTip.Tip="Confirm and close this dialog" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

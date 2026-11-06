@@ -1,8 +1,33 @@
+# Build output
 bin/
 obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/!/.idea/
-!/BatchConvertToCompressedFile/bin/
-!/BatchConvertToCompressedFile/.idea/
-!/BatchConvertToCompressedFile/bin/
+artifacts/
+_site/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+_ReSharper.Caches/
+
+# Packages
+packages/
+*.nupkg
+*.snupkg
+
+# Local logs and data
+*.log
+logs/
+donation.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,102 +1,140 @@
 # Batch Convert to Compressed File
-A Windows desktop utility for batch compressing files to `.7z` or `.zip` formats and for verifying the integrity of existing compressed archives.
+
+A cross-platform desktop utility for **batch compressing files** into individual `.7z` or `.zip`
+archives and **verifying the integrity** of existing `.7z`, `.zip`, and `.rar` archives.
+
+Built with **Avalonia 12**, **.NET 10**, and **SharpCompress**. Runs on Windows, Linux, and macOS
+on both **x64** and **arm64**.
 
 ![Batch Convert to Compressed File](screenshot1.png)
-![Batch Convert to Compressed File](screenshot2.png)
 
-## Overview
-Batch Convert to Compressed File is a Windows application that provides a simple user interface for compressing multiple files into individual archives and verifying the integrity of existing compressed files.
+## Features
 
-## Key Features
-- **Batch Compression**: Compress multiple files into individual archives in a single operation
-- **Multiple Format Support**: Create `.7z` or `.zip` archives
-- **Comprehensive Archive Verification**: Verify integrity of `.7z`, `.zip`, and `.rar` archives with detailed CRC checking
-- **Real-time Progress Tracking**: Detailed progress indicators, logging, and write speed monitoring
-- **Flexible File Management**:
-  - Option to delete original files after compression
-  - Automatically move verified archives to "Success" or "Failed" folders
-- **User-Friendly Interface**: Intuitive, clean Windows application with real-time statistics
+- **Batch compression** - one archive per file, `.7z` (LZMA2) or `.zip` (Deflate)
+- **Archive verification** - `.7z`, `.zip`, and `.rar`, with full size and CRC-32 checks
+- **Flexible file management** - optionally delete originals after compression, or move verified
+  and failed archives into separate folders while preserving subfolders
+- **Live feedback** - progress bar, current file, elapsed time, write speed, and success/failure
+  statistics
+- **Live log on the right** - resizable activity log powered by Serilog
+- **Professional black/indigo theme** - tooltips on every control
+- **About window** - version, platform, runtime, and project links
+- **GitHub update check** - offers to open the download page when a newer release exists
+- **Donation banner** - disappears permanently only after a donation is verified by the API
+- **Startup statistics** - anonymous application ID and version sent to the stats endpoint
+- **Automatic bug reports** - every Warning+ Serilog event is forwarded to the bug report API
+- **Fully managed archive engine** - no native 7-Zip binaries on any platform
 
-## Supported File Formats
+## Downloads
 
-### Compression Output
-- **.7z files** (7-Zip archives)
-- **.zip files** (ZIP archives)
+Pick the asset for your platform from the
+[latest release](https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/latest):
 
-### Verification Support
-- **.7z files** (7-Zip archives)
-- **.zip files** (ZIP archives)
-- **.rar files** (RAR archives)
+| Platform | x64 | arm64 |
+| --- | --- | --- |
+| Windows | `..._win-x64.zip` | `..._win-arm64.zip` |
+| Linux | `..._linux-x64.tar.gz` | `..._linux-arm64.tar.gz` |
+| macOS | `..._osx-x64.tar.gz` | `..._osx-arm64.tar.gz` |
+
+Each release also publishes `checksums.txt` with SHA-256 hashes.
 
 ## Requirements
-- [.NET 10.0 Runtime](https://dotnet.microsoft.com/download/dotnet/9.0)
-- Included `7z.dll` (multi-architecture support)
 
-## Installation
-1. Download the latest release.
-2. Extract the ZIP file to a folder of your choice.
-3. Run `BatchConvertToCompressedFile.exe`.
+- **Releases:** self-contained; no .NET installation required
+- **From source:** .NET 10 SDK
+- **Linux/macOS:** a graphical desktop session (X11, Wayland, or Aqua)
 
 ## Usage
 
-### Compressing Files
-1. **Select the "Compress Files" tab**.
-2. **Select Source Files Folder**: Click "Browse" next to "Source Files Folder" to select the folder containing files to compress.
-3. **Select Output Folder**: Click "Browse" next to "Output Folder" to choose where the compressed files will be saved.
-4. **Choose Output Format**: Select either the ".7z" or ".zip" format for the compressed archives.
-5. **Delete Option**: Check "Delete original files after successful compression" if you want to remove source files after compression.
-6. **Start Compression**: Click "Start Compression" to begin the batch process.
-7. **Monitor Progress**: The application displays progress bars, write speed, and detailed log messages for each file during compression.
-8. **Cancel (if needed)**: Click "Cancel" to stop the ongoing compression process gracefully.
+### Compress files
 
-### Verifying Archives
-1. **Select the "Verify Archives" tab**.
-2. **Select Archives Folder**: Click "Browse" next to "Archives Folder" to select the folder containing the archives to verify.
-3. **Include Subfolders**: Check this option to recursively scan subdirectories for archives.
-4. **Move Options**: Optionally configure moving successfully verified or failed archives to separate folders.
-5. **Start Verification**: Click "Start Verification" to begin the verification process.
-6. **Monitor Progress**: The application displays detailed verification results and statistics.
+1. Open the **Compress Files** tab.
+2. Select a source folder and an output folder (they must be different).
+3. Choose `.7z` or `.zip`.
+4. Optionally enable deletion of originals after successful compression.
+5. Click **Start compression**.
 
-## About Compressed File Formats
+Existing archives are skipped and never overwritten.
 
-### 7-Zip (.7z)
-The 7z format is an open-source archive format that offers several advantages:
-- **Superior Compression**: Often achieves better compression ratios than the ZIP and RAR formats.
-- **Multiple Compression Methods**: Supports LZMA, LZMA2, and other advanced compression algorithms.
-- **Strong Encryption**: AES-256 encryption support for secure archives.
-- **Unicode Support**: Proper handling of international filenames.
+### Verify archives
 
-### ZIP (.zip)
-The ZIP format is a widely supported archive format that provides:
-- **Universal Compatibility**: Supported natively by Windows and most operating systems.
-- **Fast Compression**: Quick compression and decompression using built-in .NET libraries.
-- **Wide Software Support**: Compatible with virtually all archive management tools.
+1. Open the **Verify Archives** tab.
+2. Select the archives folder.
+3. Optionally enable subfolder scanning and success/failed move folders.
+4. Click **Start verification**.
 
-## Why Use This Tool?
-- **Save Time**: Batch process multiple files instead of compressing them one by one.
-- **Save Disk Space**: Compressed files take up significantly less storage space.
-- **Verify Integrity**: Ensure your archives are not corrupted and can be safely extracted.
-- **Organize Files**: Automatically organize verified archives into "Success" and "Failed" folders.
-- **Reliability**: Built-in error handling and comprehensive logging for troubleshooting.
+Every entry is fully decompressed and checked against its stored size and CRC-32.
 
-## Troubleshooting
-- Ensure `7z.dll` is present in the same directory as the application for .7z compression.
-- Make sure you have appropriate permissions to read from the input and write to the output directories.
-- Review the application log window for detailed error messages during operations.
-- Automatic error reports will be sent to the developer if unexpected issues occur.
-- For verification issues, ensure the archive files are not in use by other applications.
+## Build and test
 
-## ⭐ Support This Project
-If you find this tool useful, please consider:
+```powershell
+dotnet restore CSharp_BatchConvertToCompressedFile.sln
+dotnet build   CSharp_BatchConvertToCompressedFile.sln -c Release
+dotnet test    CSharp_BatchConvertToCompressedFile.sln -c Release
+```
 
-  **[⭐ Star this project on GitHub](https://github.com/drpetersonfernandes/BatchConvertToCompressedFile)**<br>
-  **[💝 If you like this software, consider a donation](https://www.purelogiccode.com/donate/)**
+Run:
 
-Every star and donation is greatly appreciated and motivates us to keep creating helpful tools for the community!
+```powershell
+dotnet run --project BatchConvertToCompressedFile
+```
+
+Publish for any RID:
+
+```powershell
+dotnet publish BatchConvertToCompressedFile -c Release -r linux-arm64 --self-contained true `
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/linux-arm64
+```
+
+Supported RIDs: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
+
+## Documentation
+
+Full documentation lives in [`docs/`](docs/index.md):
+
+- [Getting started](docs/getting-started.md)
+- [User guide](docs/user-guide.md)
+- [Configuration](docs/configuration.md)
+- [Logging and bug reports](docs/logging-and-bug-reports.md)
+- [Donation](docs/donation.md)
+- [Statistics](docs/statistics.md)
+- [Architecture](docs/architecture.md)
+- [Building and testing](docs/building-and-testing.md)
+- [CI/CD](docs/ci-cd.md)
+- [Release process](docs/release-process.md)
+- [Security](docs/security.md)
+- [Manual testing](docs/manual-testing.md)
+- [Validation report](docs/validation-report.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
+## CI/CD
+
+- Build + tests on Windows, Linux, and macOS
+- Cross-publish validation for all six RIDs
+- Tag-driven releases with ZIP/TAR.GZ packages and SHA-256 checksums
+- CodeQL, Dependency Review, Dependabot, and NuGet audit
+- MkDocs Material documentation deployed to GitHub Pages
+
+## Security
+
+Please report vulnerabilities privately through
+[GitHub Security Advisories](https://github.com/purelogiccode/BatchConvertToCompressedFile/security/advisories/new).
+See [`SECURITY.md`](SECURITY.md) for the full policy.
+
+## Support this project
+
+If this tool saves you time, please consider a donation:
+
+**[Donate](https://www.purelogiccode.com/Donate?app=batch-convert-to-compressed-file)**
+
+Every donation helps keep the application free and actively maintained.
 
 ## Acknowledgements
-- Uses **7-Zip** (`7z.dll`) for archive creation and extraction.
+
+- Uses [SharpCompress](https://github.com/adamhathcock/sharpcompress) for managed archive handling.
+- Built with [Avalonia](https://avaloniaui.net/) and [Serilog](https://serilog.net/).
 - Developed by [Pure Logic Code](https://www.purelogiccode.com).
 
 ---
-Thank you for using **Batch Convert to Compressed File**! For more information and support, visit [purelogiccode.com](https://www.purelogiccode.com).
+
+Thank you for using **Batch Convert to Compressed File**!

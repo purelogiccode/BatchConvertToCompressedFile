@@ -1,0 +1,338 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="using:Avalonia.Data.Converters"
+        x:Class="BatchConvertToCompressedFile.Views.MainWindow"
+        Title="Batch Convert to Compressed File"
+        Icon="avares://BatchConvertToCompressedFile/icon/icon.ico"
+        Width="1080"
+        Height="780"
+        MinWidth="860"
+        MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        Closing="OnWindowClosing"
+        Opened="OnWindowOpenedAsync">
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+    <!-- Menu -->
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File" ToolTip.Tip="Application file actions">
+        <MenuItem Header="Open _Log Folder"
+                  Click="OnOpenLogFolderClick"
+                  ToolTip.Tip="Open the folder containing application log files" />
+        <Separator />
+        <MenuItem Header="E_xit"
+                  Click="OnExitClick"
+                  ToolTip.Tip="Close the application" />
+      </MenuItem>
+      <MenuItem Header="_Help" ToolTip.Tip="Help and application information">
+        <MenuItem Header="_Check for Updates"
+                  Click="OnCheckForUpdatesClickAsync"
+                  ToolTip.Tip="Check GitHub for a newer release" />
+        <MenuItem Header="Open _GitHub Repository"
+                  Click="OnOpenRepositoryClick"
+                  ToolTip.Tip="Open the project repository in your browser" />
+        <MenuItem Header="_Donate"
+                  Click="OnDonateClick"
+                  ToolTip.Tip="Open the donation page in your browser" />
+        <Separator />
+        <MenuItem Header="_About"
+                  Click="OnAboutClickAsync"
+                  ToolTip.Tip="Show application version and credits" />
+      </MenuItem>
+    </Menu>
+
+    <!-- Donation banner: intentionally has no close button. It disappears only after a verified donation. -->
+    <Border Grid.Row="1"
+            IsVisible="{Binding IsDonationBannerVisible}"
+            Background="{StaticResource BannerBrush}"
+            BorderBrush="{StaticResource AccentColor}"
+            BorderThickness="0,1,0,1"
+            Padding="16,10"
+            ToolTip.Tip="This banner disappears permanently after your donation is verified">
+      <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Spacing="2">
+          <TextBlock Text="This app is free and donation-supported"
+                     FontWeight="SemiBold"
+                     FontSize="14"
+                     ToolTip.Tip="Donations keep this application free and actively maintained" />
+          <TextBlock Text="If this tool saves you time, please consider a donation. The banner disappears after your donation is verified."
+                     Classes="secondary"
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     ToolTip.Tip="Enter the email used for your donation, then click Verify donation" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Margin="0,9,0,0">
+          <TextBox Width="260"
+                   Text="{Binding DonationEmail}"
+                   PlaceholderText="Email used for donation"
+                   IsEnabled="{Binding !IsVerifyingDonation}"
+                   ToolTip.Tip="Enter the email address you used on the donation page" />
+          <Button Content="Donate"
+                  Classes="primary"
+                  Click="OnDonateClick"
+                  ToolTip.Tip="Open the donation page in your default browser" />
+          <Button Content="Verify donation"
+                  Click="OnVerifyDonationClickAsync"
+                  IsEnabled="{Binding !IsVerifyingDonation}"
+                  ToolTip.Tip="Ask the donation service whether this email has a completed donation" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                   Margin="0,7,0,0"
+                   Text="{Binding DonationMessage}"
+                   Classes="secondary"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding DonationMessage, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}"
+                   ToolTip.Tip="Donation verification status" />
+      </Grid>
+    </Border>
+
+    <!-- Main content: settings on the left, live log on the right, statistics below. -->
+    <Grid Grid.Row="2" RowDefinitions="*,Auto" Margin="16,12,16,0">
+      <Grid Grid.Row="0" ColumnDefinitions="3*,10,2*">
+        <TabControl Grid.Column="0" x:Name="MainTabControl" IsEnabled="{Binding !IsBusy}">
+        <TabItem Header="Compress Files" ToolTip.Tip="Create individual .7z or .zip archives from files in a folder">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="18,16" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+              <TextBlock Text="Batch compression" Classes="h1" ToolTip.Tip="Compress every file in a folder into its own archive" />
+              <TextBlock Text="Each file becomes an individual archive. Existing archives are never overwritten."
+                         Classes="secondary"
+                         TextWrapping="Wrap"
+                         ToolTip.Tip="Files are processed one at a time; existing output archives are skipped" />
+
+              <Grid ColumnDefinitions="150,*,Auto" RowDefinitions="Auto">
+                <TextBlock Grid.Column="0" Text="Source folder" Classes="label" VerticalAlignment="Center"
+                           ToolTip.Tip="Folder containing the files to compress" />
+                <TextBox Grid.Column="1" Margin="8,0" Text="{Binding CompressionInputFolder}" IsReadOnly="True"
+                         ToolTip.Tip="Selected source folder. Use Browse to change it." />
+                <Button Grid.Column="2" Content="Browse…" Click="OnBrowseCompressionInputClickAsync"
+                        ToolTip.Tip="Choose the folder containing the files to compress" />
+              </Grid>
+
+              <Grid ColumnDefinitions="150,*,Auto">
+                <TextBlock Grid.Column="0" Text="Output folder" Classes="label" VerticalAlignment="Center"
+                           ToolTip.Tip="Folder where the generated archives are written" />
+                <TextBox Grid.Column="1" Margin="8,0" Text="{Binding CompressionOutputFolder}" IsReadOnly="True"
+                         ToolTip.Tip="Selected output folder. Use Browse to change it." />
+                <Button Grid.Column="2" Content="Browse…" Click="OnBrowseCompressionOutputClickAsync"
+                        ToolTip.Tip="Choose the folder where archives will be saved" />
+              </Grid>
+
+              <StackPanel Orientation="Horizontal" Spacing="18">
+                <TextBlock Text="Output format" Classes="label" VerticalAlignment="Center"
+                           ToolTip.Tip="Choose the archive format used for every output file" />
+                <RadioButton GroupName="Format" Content=".7z (7-Zip)" IsChecked="{Binding IsSevenZipFormat}"
+                             ToolTip.Tip="Create 7-Zip archives with LZMA2 compression" />
+                <RadioButton GroupName="Format" Content=".zip (ZIP)" IsChecked="{Binding IsZipFormat}"
+                             ToolTip.Tip="Create standard ZIP archives with Deflate compression" />
+              </StackPanel>
+
+              <CheckBox Content="Delete original files after successful compression"
+                        IsChecked="{Binding DeleteOriginals}"
+                        ToolTip.Tip="Permanently delete each source file once its archive has been created successfully" />
+
+              <Expander Header="How it works" IsExpanded="False"
+                        ToolTip.Tip="Expand for a quick compression workflow summary">
+                <Border Classes="card" Padding="14" Margin="0,5,0,0">
+                  <StackPanel Spacing="5">
+                    <TextBlock Text="1. Select a source folder and an output folder." Classes="secondary"
+                               ToolTip.Tip="The folders must be different" />
+                    <TextBlock Text="2. Choose .7z or .zip and whether originals should be deleted." Classes="secondary"
+                               ToolTip.Tip="Deletion happens only after a successful compression" />
+                    <TextBlock Text="3. Click Start compression and monitor the live log and statistics." Classes="secondary"
+                               ToolTip.Tip="Use Cancel at any time to stop the batch gracefully" />
+                  </StackPanel>
+                </Border>
+              </Expander>
+
+              <Button Content="Start compression"
+                      Classes="primary"
+                      HorizontalAlignment="Left"
+                      Padding="22,10"
+                      Click="OnStartCompressionClickAsync"
+                      IsEnabled="{Binding !IsBusy}"
+                      ToolTip.Tip="Begin compressing every file in the source folder" />
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Verify Archives" ToolTip.Tip="Verify the integrity of .7z, .zip, and .rar archives">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="18,16" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+              <TextBlock Text="Batch verification" Classes="h1" ToolTip.Tip="Read every archive entry to confirm its integrity" />
+              <TextBlock Text="Supported formats: .7z, .zip, and .rar. Every entry is fully decompressed and CRC-checked."
+                         Classes="secondary"
+                         TextWrapping="Wrap"
+                         ToolTip.Tip="Corrupt, encrypted, or unreadable archives are reported as failed" />
+
+              <Grid ColumnDefinitions="150,*,Auto">
+                <TextBlock Grid.Column="0" Text="Archives folder" Classes="label" VerticalAlignment="Center"
+                           ToolTip.Tip="Folder containing the archives to verify" />
+                <TextBox Grid.Column="1" Margin="8,0" Text="{Binding VerificationInputFolder}" IsReadOnly="True"
+                         ToolTip.Tip="Selected archives folder. Use Browse to change it." />
+                <Button Grid.Column="2" Content="Browse…" Click="OnBrowseVerificationInputClickAsync"
+                        ToolTip.Tip="Choose the folder containing archives to verify" />
+              </Grid>
+
+              <CheckBox Content="Include subfolders"
+                        IsChecked="{Binding IncludeSubfolders}"
+                        ToolTip.Tip="Scan every subfolder below the archives folder" />
+
+              <CheckBox Content="Move successfully verified archives to a success folder"
+                        IsChecked="{Binding MoveSuccessFiles}"
+                        ToolTip.Tip="Move archives that pass verification to a separate folder" />
+
+              <Grid ColumnDefinitions="150,*,Auto" IsVisible="{Binding MoveSuccessFiles}" Margin="26,0,0,0">
+                <TextBlock Grid.Column="0" Text="Success folder" Classes="label" VerticalAlignment="Center"
+                           ToolTip.Tip="Destination folder for successfully verified archives" />
+                <TextBox Grid.Column="1" Margin="8,0" Text="{Binding SuccessFolder}" IsReadOnly="True"
+                         ToolTip.Tip="Selected success folder. Use Browse to change it." />
+                <Button Grid.Column="2" Content="Browse…" Click="OnBrowseSuccessFolderClickAsync"
+                        ToolTip.Tip="Choose the destination folder for successful archives" />
+              </Grid>
+
+              <CheckBox Content="Move failed archives to a failed folder"
+                        IsChecked="{Binding MoveFailedFiles}"
+                        ToolTip.Tip="Move archives that fail verification to a separate folder" />
+
+              <Grid ColumnDefinitions="150,*,Auto" IsVisible="{Binding MoveFailedFiles}" Margin="26,0,0,0">
+                <TextBlock Grid.Column="0" Text="Failed folder" Classes="label" VerticalAlignment="Center"
+                           ToolTip.Tip="Destination folder for failed archives" />
+                <TextBox Grid.Column="1" Margin="8,0" Text="{Binding FailedFolder}" IsReadOnly="True"
+                         ToolTip.Tip="Selected failed folder. Use Browse to change it." />
+                <Button Grid.Column="2" Content="Browse…" Click="OnBrowseFailedFolderClickAsync"
+                        ToolTip.Tip="Choose the destination folder for failed archives" />
+              </Grid>
+
+              <Expander Header="Verification notes" IsExpanded="False"
+                        ToolTip.Tip="Expand for important verification behavior">
+                <Border Classes="card" Padding="14" Margin="0,5,0,0">
+                  <StackPanel Spacing="5">
+                    <TextBlock Text="• Archives already in the destination folder are never overwritten."
+                               Classes="secondary" ToolTip.Tip="Move operations skip existing files" />
+                    <TextBlock Text="• Subfolder structure is preserved when Include subfolders is enabled."
+                               Classes="secondary" ToolTip.Tip="The relative path below the input folder is recreated" />
+                    <TextBlock Text="• A corrupt or password-protected archive is counted as failed."
+                               Classes="secondary" ToolTip.Tip="Encrypted archives cannot be verified without a password" />
+                  </StackPanel>
+                </Border>
+              </Expander>
+
+              <Button Content="Start verification"
+                      Classes="primary"
+                      HorizontalAlignment="Left"
+                      Padding="22,10"
+                      Click="OnStartVerificationClickAsync"
+                      IsEnabled="{Binding !IsBusy}"
+                      ToolTip.Tip="Begin verifying every supported archive in the folder" />
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        </TabControl>
+
+        <GridSplitter Grid.Column="1" x:Name="LogSplitter"
+                      Width="10"
+                      HorizontalAlignment="Stretch"
+                      ResizeDirection="Columns"
+                      Background="Transparent"
+                      ToolTip.Tip="Drag to resize the live log panel" />
+
+        <!-- Live log -->
+        <Border Grid.Column="2" Classes="card" MinWidth="300" Padding="0"
+                ToolTip.Tip="Real-time application and operation activity log">
+          <Grid RowDefinitions="Auto,*">
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,10,10,6">
+              <TextBlock Text="Live log" Classes="h2" VerticalAlignment="Center"
+                         ToolTip.Tip="Chronological application and operation log" />
+              <Button Grid.Column="1" Content="Open log folder" Classes="link"
+                      Click="OnOpenLogFolderClick"
+                      ToolTip.Tip="Open the folder containing persistent log files" />
+            </Grid>
+            <ListBox Grid.Row="1" x:Name="LogList"
+                     ItemsSource="{Binding LogEntries}"
+                     Margin="10,0,10,10"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ToolTip.Tip="Live operation log; warning and error events are also sent to the bug report service">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas, Menlo, monospace"
+                             FontSize="12" ToolTip.Tip="Log event" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- Statistics -->
+      <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,*" Margin="0,12,0,0" ColumnSpacing="10">
+        <Border Grid.Column="0" Classes="stat" ToolTip.Tip="Total number of files in the current batch">
+          <StackPanel Spacing="2">
+            <TextBlock Text="TOTAL FILES" Classes="label" ToolTip.Tip="Total files in the current batch" />
+            <TextBlock Text="{Binding TotalFileCount}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Number of files included in this batch" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="stat" ToolTip.Tip="Files processed successfully">
+          <StackPanel Spacing="2">
+            <TextBlock Text="SUCCESS" Classes="label" Foreground="{StaticResource SuccessBrush}" ToolTip.Tip="Files processed successfully" />
+            <TextBlock Text="{Binding SuccessFileCount}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Successful file count"
+                       Foreground="{StaticResource SuccessBrush}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="stat" ToolTip.Tip="Files that failed processing">
+          <StackPanel Spacing="2">
+            <TextBlock Text="FAILED" Classes="label" Foreground="{StaticResource DangerBrush}" ToolTip.Tip="Files that failed processing" />
+            <TextBlock Text="{Binding FailedFileCount}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Failed file count"
+                       Foreground="{StaticResource DangerBrush}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="3" Classes="stat" ToolTip.Tip="Elapsed time for the current operation">
+          <StackPanel Spacing="2">
+            <TextBlock Text="ELAPSED" Classes="label" ToolTip.Tip="Elapsed time for the current operation" />
+            <TextBlock Text="{Binding ProcessingTime}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Elapsed time in hours, minutes, and seconds" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="4" Classes="stat" ToolTip.Tip="Estimated disk write speed during the current operation">
+          <StackPanel Spacing="2">
+            <TextBlock Text="WRITE SPEED" Classes="label" ToolTip.Tip="Approximate disk write speed" />
+            <TextBlock Text="{Binding WriteSpeed}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Current write speed in megabytes per second" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- Progress -->
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="16,10,16,0"
+          IsVisible="{Binding IsProgressVisible}">
+      <Grid Grid.Column="0" RowDefinitions="Auto,Auto">
+        <TextBlock Grid.Row="0" Text="{Binding ProgressText}" Classes="secondary" FontSize="12"
+                   Margin="0,0,0,5" TextTrimming="CharacterEllipsis"
+                   ToolTip.Tip="Current file and overall batch progress" />
+        <ProgressBar Grid.Row="1" Height="8" Minimum="0"
+                     Maximum="{Binding ProgressMaximum}"
+                     Value="{Binding ProgressValue}"
+                     ToolTip.Tip="Batch progress bar" />
+      </Grid>
+      <Button Grid.Column="1" Content="Cancel" Classes="danger" Margin="12,0,0,0"
+              Click="OnCancelClick"
+              IsVisible="{Binding IsCancelVisible}"
+              ToolTip.Tip="Stop the current operation after the active file finishes" />
+    </Grid>
+
+    <!-- Status bar -->
+    <Border Grid.Row="4" Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}"
+            BorderThickness="0,1,0,0" Padding="16,7" Margin="0,12,0,0">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding StatusText}" Classes="secondary" FontSize="12"
+                   VerticalAlignment="Center" ToolTip.Tip="Current application status" />
+        <TextBlock Grid.Column="2" Text="{Binding VersionText}" Classes="muted" FontSize="12"
+                   VerticalAlignment="Center" ToolTip.Tip="Installed application version" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
