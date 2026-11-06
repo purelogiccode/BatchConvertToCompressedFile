@@ -50,9 +50,9 @@ foreach ($rid in $rids) {
     else {
         $bundlePath = Join-Path $stage "$bundleName.tar.gz"
         if (Test-Path $bundlePath) { Remove-Item $bundlePath -Force }
-        tar -czf $bundlePath -C $publishDirectory .
+        python scripts\package-tar.py $publishDirectory $bundlePath
         if ($LASTEXITCODE -ne 0) {
-            throw "tar failed for $rid"
+            throw "tar packaging failed for $rid"
         }
     }
 
@@ -70,7 +70,7 @@ $checksumLines | Set-Content $checksumPath -Encoding utf8
 Copy-Item $checksumPath $output -Force
 
 Write-Host ""
-Write-Host "Bundles written to $output:"
+Write-Host "Bundles written to ${output}:"
 Get-ChildItem $output -File |
     Where-Object { $_.Name -like "BatchConvertToCompressedFile_$Version`_*" -or $_.Name -eq "checksums_$Version.txt" } |
     Select-Object Name, Length |

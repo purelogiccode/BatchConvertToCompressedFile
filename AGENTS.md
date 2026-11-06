@@ -42,6 +42,11 @@ dotnet publish BatchConvertToCompressedFile -c Release -r win-x64 --self-contain
 
 Supported RIDs: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`.
 
+Release bundles are framework-dependent single-file builds (`--self-contained false`). They must
+include `LICENSE`, `ReadMe.md`, and `WhatsNew.md`, use the
+`BatchConvertToCompressedFile_<version>_<rid>.zip|tar.gz` naming pattern, and be copied to
+`BatchConvertToCompressedFile\bin\Release` without deleting existing files.
+
 ## Architecture rules
 
 - Keep **models and enums** in `BatchConvertToCompressedFile/Models`.

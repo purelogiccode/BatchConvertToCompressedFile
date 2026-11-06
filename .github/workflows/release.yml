@@ -107,8 +107,9 @@ jobs:
           RID: ${{ matrix.rid }}
         run: |
           set -euo pipefail
-          tar -czf "artifacts/BatchConvertToCompressedFile_${VERSION}_${RID}.tar.gz" \
-            -C "artifacts/$RID" .
+          python3 scripts/package-tar.py \
+            "artifacts/$RID" \
+            "artifacts/BatchConvertToCompressedFile_${VERSION}_${RID}.tar.gz"
           rm -rf "artifacts/$RID"
 
       - name: Upload package

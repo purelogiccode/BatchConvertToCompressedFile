@@ -68,6 +68,36 @@ The website catalog entry was deployed to the production VPS on 2026-11-05. The 
 `PureLogicCode.dll` was backed up to
 `C:\Backups\purelogiccode-donation-20261105-220231` on the server.
 
+## Release bundles
+
+All six bundles were produced in `BatchConvertToCompressedFile\bin\Release` without deleting
+existing files:
+
+| Bundle | Size |
+| --- | --- |
+| `BatchConvertToCompressedFile_2.0.0_win-x64.zip` | 13.7 MB |
+| `BatchConvertToCompressedFile_2.0.0_win-arm64.zip` | 13.1 MB |
+| `BatchConvertToCompressedFile_2.0.0_linux-x64.tar.gz` | 11.6 MB |
+| `BatchConvertToCompressedFile_2.0.0_linux-arm64.tar.gz` | 11.3 MB |
+| `BatchConvertToCompressedFile_2.0.0_osx-x64.tar.gz` | 14.7 MB |
+| `BatchConvertToCompressedFile_2.0.0_osx-arm64.tar.gz` | 14.7 MB |
+
+Each bundle contains exactly one application executable plus `LICENSE`, `ReadMe.md`, and
+`WhatsNew.md`. The builds are framework-dependent single-file; the .NET runtime is not embedded.
+Linux/macOS tar entries use `0755` for the executable and `0644` for documents. The Windows x64
+bundle was extracted and launched successfully. `file` reports a Linux x86-64 ELF executable and
+a macOS arm64 Mach-O executable.
+
+Checksums are in `checksums_2.0.0.txt` next to the bundles.
+
+## Documentation deployment
+
+- GitHub Pages: <https://purelogiccode.github.io/BatchConvertToCompressedFile/>
+- GitHub Wiki: <https://github.com/purelogiccode/BatchConvertToCompressedFile/wiki>
+
+The Documentation workflow builds MkDocs, deploys Pages, generates the wiki payload, and pushes
+the same pages plus `_Sidebar.md` and `_Footer.md` to the wiki.
+
 ## Outstanding items
 
 1. Run the macOS and ARM64 runtime checks when hardware is available.
