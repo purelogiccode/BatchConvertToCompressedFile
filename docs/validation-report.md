@@ -8,8 +8,8 @@
 | Check | Result |
 | --- | --- |
 | `dotnet build -c Release` (Windows) | Passed, 0 warnings, 0 errors |
-| `dotnet test -c Release` (Windows) | 120 passed, 0 failed |
-| `dotnet test -c Debug` (Windows) | 120 passed, 0 failed |
+| `dotnet test -c Release` (Windows) | 126 passed, 0 failed |
+| `dotnet test -c Debug` (Windows) | 126 passed, 0 failed |
 | `dotnet list package --vulnerable --include-transitive` | No vulnerable packages reported |
 
 ## Static analysis
@@ -88,7 +88,8 @@ Linux/macOS tar entries use `0755` for the executable and `0644` for documents. 
 bundle was extracted and launched successfully. `file` reports a Linux x86-64 ELF executable and
 a macOS arm64 Mach-O executable.
 
-Checksums are in `checksums_2.0.0.txt` next to the bundles.
+The local folder contains exact copies of the published GitHub release assets. SHA-256 values in
+`checksums.txt` / `checksums_2.0.0.txt` were verified with zero mismatches.
 
 ## Documentation deployment
 

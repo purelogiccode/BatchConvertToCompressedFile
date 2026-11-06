@@ -67,6 +67,44 @@ public sealed class UpdateServiceTests
         Assert.Equal("https://example.test/linux-arm64.tar.gz", result.DownloadUrl);
     }
 
+    [Theory]
+    [InlineData("win-x64", "https://example.test/BatchConvertToCompressedFile_99.1.2_win-x64.zip")]
+    [InlineData("win-arm64", "https://example.test/BatchConvertToCompressedFile_99.1.2_win-arm64.zip")]
+    [InlineData("linux-x64", "https://example.test/BatchConvertToCompressedFile_99.1.2_linux-x64.tar.gz")]
+    [InlineData("linux-arm64", "https://example.test/BatchConvertToCompressedFile_99.1.2_linux-arm64.tar.gz")]
+    [InlineData("osx-x64", "https://example.test/BatchConvertToCompressedFile_99.1.2_osx-x64.tar.gz")]
+    [InlineData("osx-arm64", "https://example.test/BatchConvertToCompressedFile_99.1.2_osx-arm64.tar.gz")]
+    public async Task CheckForUpdateAsync_AllReleaseAssetNames_SelectCorrectBundle(
+        string runtimeIdentifier,
+        string expectedUrl)
+    {
+        const string allAssetsJson = """
+            {
+              "tag_name": "v99.1.2",
+              "html_url": "https://github.com/purelogiccode/BatchConvertToCompressedFile/releases/tag/v99.1.2",
+              "assets": [
+                { "name": "BatchConvertToCompressedFile_99.1.2_win-x64.zip", "browser_download_url": "https://example.test/BatchConvertToCompressedFile_99.1.2_win-x64.zip" },
+                { "name": "BatchConvertToCompressedFile_99.1.2_win-arm64.zip", "browser_download_url": "https://example.test/BatchConvertToCompressedFile_99.1.2_win-arm64.zip" },
+                { "name": "BatchConvertToCompressedFile_99.1.2_linux-x64.tar.gz", "browser_download_url": "https://example.test/BatchConvertToCompressedFile_99.1.2_linux-x64.tar.gz" },
+                { "name": "BatchConvertToCompressedFile_99.1.2_linux-arm64.tar.gz", "browser_download_url": "https://example.test/BatchConvertToCompressedFile_99.1.2_linux-arm64.tar.gz" },
+                { "name": "BatchConvertToCompressedFile_99.1.2_osx-x64.tar.gz", "browser_download_url": "https://example.test/BatchConvertToCompressedFile_99.1.2_osx-x64.tar.gz" },
+                { "name": "BatchConvertToCompressedFile_99.1.2_osx-arm64.tar.gz", "browser_download_url": "https://example.test/BatchConvertToCompressedFile_99.1.2_osx-arm64.tar.gz" }
+              ]
+            }
+            """;
+
+        var handler = new StubHttpMessageHandler((_, _) =>
+            Task.FromResult(StubHttpMessageHandler.Json(HttpStatusCode.OK, allAssetsJson)));
+        using var client = new HttpClient(handler);
+        using var service = new UpdateService(
+            "https://api.github.test/latest", client, new Version(1, 0, 0, 0), runtimeIdentifier);
+
+        var result = await service.CheckForUpdateAsync();
+
+        Assert.True(result.IsNewVersionAvailable);
+        Assert.Equal(expectedUrl, result.DownloadUrl);
+    }
+
     [Fact]
     public async Task CheckForUpdateAsync_SameVersion_ReturnsUpToDate()
     {
