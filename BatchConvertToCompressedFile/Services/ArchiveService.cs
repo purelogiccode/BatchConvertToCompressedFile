@@ -1,4 +1,5 @@
 using BatchConvertToCompressedFile.Interfaces;
+using BatchConvertToCompressedFile.Logging;
 using BatchConvertToCompressedFile.Models;
 using SharpCompress.Archives;
 using SharpCompress.Common;
@@ -29,12 +30,21 @@ internal sealed class ArchiveService : IArchiveService
         ArgumentException.ThrowIfNullOrWhiteSpace(inputFile);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFile);
 
+        var temporaryFile = CreateTemporaryFilePath(outputFile);
+
         try
         {
             if (!File.Exists(inputFile))
             {
                 Log.Information("Compression source file no longer exists: {InputFile}", inputFile);
                 return ProcessStatus.Failed;
+            }
+
+            if (File.Exists(outputFile))
+            {
+                Log.Information(
+                    "Skipped {InputFile}: archive already exists at {OutputFile}", inputFile, outputFile);
+                return ProcessStatus.Skipped;
             }
 
             var outputDirectory = Path.GetDirectoryName(outputFile);
@@ -47,7 +57,7 @@ internal sealed class ArchiveService : IArchiveService
             var writerOptions = CreateWriterOptions(format);
 
             await using (var writer = await WriterFactory.OpenAsyncWriter(
-                             outputFile, archiveType, writerOptions, cancellationToken))
+                             temporaryFile, archiveType, writerOptions, cancellationToken).ConfigureAwait(false))
             {
                 await using var inputStream = new FileStream(
                     inputFile, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize,
@@ -57,7 +67,24 @@ internal sealed class ArchiveService : IArchiveService
                     Path.GetFileName(inputFile),
                     inputStream,
                     File.GetLastWriteTimeUtc(inputFile),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            try
+            {
+                // Move only after the archive is complete so a failed or canceled run never leaves
+                // a partial archive at the user-visible destination.
+                File.Move(temporaryFile, outputFile, overwrite: false);
+            }
+            catch (Exception ex) when (
+                (ex is IOException or UnauthorizedAccessException) &&
+                File.Exists(outputFile))
+            {
+                Log.Information(
+                    "Skipped {InputFile}: archive appeared at {OutputFile} while compressing",
+                    inputFile, outputFile);
+                await TryDeleteFileAsync(temporaryFile, CancellationToken.None).ConfigureAwait(false);
+                return ProcessStatus.Skipped;
             }
 
             Log.Information("Compressed {InputFile} to {OutputFile}", inputFile, outputFile);
@@ -65,20 +92,20 @@ internal sealed class ArchiveService : IArchiveService
         }
         catch (OperationCanceledException)
         {
-            await TryDeletePartialArchiveAsync(outputFile, cancellationToken);
+            await TryDeleteFileAsync(temporaryFile, CancellationToken.None).ConfigureAwait(false);
             throw;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ExceptionLogging.IsExpected(ex))
         {
             // Locked/permission-denied files are expected user conditions, not application bugs.
             Log.Information(ex, "Compression skipped for {InputFile}: {Message}", inputFile, ex.Message);
-            await TryDeletePartialArchiveAsync(outputFile, CancellationToken.None);
+            await TryDeleteFileAsync(temporaryFile, CancellationToken.None).ConfigureAwait(false);
             return ProcessStatus.Failed;
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Unexpected error while compressing {InputFile}", inputFile);
-            await TryDeletePartialArchiveAsync(outputFile, CancellationToken.None);
+            await TryDeleteFileAsync(temporaryFile, CancellationToken.None).ConfigureAwait(false);
             return ProcessStatus.Failed;
         }
     }
@@ -93,10 +120,20 @@ internal sealed class ArchiveService : IArchiveService
 
         try
         {
-            await using var archive = await ArchiveFactory.OpenAsyncArchive(
-                archivePath, ReaderOptions.ForFilePath, linkedCts.Token);
+            if (!File.Exists(archivePath))
+            {
+                Log.Information("Archive no longer exists: {ArchivePath}", archivePath);
+                return false;
+            }
 
-            await foreach (var entry in archive.EntriesAsync.WithCancellation(linkedCts.Token))
+            await using var archive = await ArchiveFactory.OpenAsyncArchive(
+                archivePath, ReaderOptions.ForFilePath, linkedCts.Token).ConfigureAwait(false);
+
+            var buffer = new byte[BufferSize];
+
+            await foreach (var entry in archive.EntriesAsync
+                               .WithCancellation(linkedCts.Token)
+                               .ConfigureAwait(false))
             {
                 linkedCts.Token.ThrowIfCancellationRequested();
 
@@ -104,13 +141,17 @@ internal sealed class ArchiveService : IArchiveService
 
                 // Reading every entry to completion forces decompression. SharpCompress does not
                 // always validate the stored CRC, so calculate it ourselves when available.
-                await using var entryStream = await entry.OpenEntryStreamAsync(linkedCts.Token);
-                var buffer = new byte[BufferSize];
+                await using var entryStream = await entry
+                    .OpenEntryStreamAsync(linkedCts.Token)
+                    .ConfigureAwait(false);
+
                 long totalBytes = 0;
                 var crc = Crc32.InitialValue;
 
                 int bytesRead;
-                while ((bytesRead = await entryStream.ReadAsync(buffer, linkedCts.Token)) > 0)
+                while ((bytesRead = await entryStream
+                           .ReadAsync(buffer, linkedCts.Token)
+                           .ConfigureAwait(false)) > 0)
                 {
                     totalBytes += bytesRead;
                     crc = Crc32.Update(crc, buffer.AsSpan(0, bytesRead));
@@ -140,13 +181,21 @@ internal sealed class ArchiveService : IArchiveService
             Log.Information("Verification timed out for {ArchivePath}", archivePath);
             return false;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionLogging.IsExpected(ex))
         {
             // A corrupt, encrypted, unsupported, or locked archive is an expected verification result.
             Log.Information(ex, "Verification failed for {ArchivePath}: {Message}", archivePath, ex.Message);
             return false;
         }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Unexpected error while verifying {ArchivePath}", archivePath);
+            return false;
+        }
     }
+
+    private static string CreateTemporaryFilePath(string outputFile) =>
+        $"{outputFile}.{Guid.NewGuid():N}.tmp";
 
     private static IWriterOptions CreateWriterOptions(ArchiveFormat format)
     {
@@ -170,18 +219,20 @@ internal sealed class ArchiveService : IArchiveService
         };
     }
 
-    private static async Task TryDeletePartialArchiveAsync(string outputFile, CancellationToken cancellationToken)
+    private static async Task TryDeleteFileAsync(string filePath, CancellationToken cancellationToken)
     {
         try
         {
-            await Task.Run(() =>
-            {
-                if (File.Exists(outputFile)) File.Delete(outputFile);
-            }, cancellationToken);
+            await Task.Run(
+                () =>
+                {
+                    if (File.Exists(filePath)) File.Delete(filePath);
+                },
+                cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "Could not delete partial archive {OutputFile}", outputFile);
+            Log.Debug(ex, "Could not delete temporary archive {FilePath}", filePath);
         }
     }
 }

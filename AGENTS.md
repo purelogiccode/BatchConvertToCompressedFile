@@ -20,6 +20,13 @@ dotnet build CSharp_BatchConvertToCompressedFile.sln -c Debug
 dotnet test  CSharp_BatchConvertToCompressedFile.sln -c Debug
 ```
 
+Static analysis (must report zero warnings):
+
+```powershell
+jb inspectcode CSharp_BatchConvertToCompressedFile.sln --no-build --severity=WARNING --swea
+roslynator analyze CSharp_BatchConvertToCompressedFile.sln --severity-level warning
+```
+
 Run the app:
 
 ```powershell

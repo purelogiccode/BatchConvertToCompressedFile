@@ -1,16 +1,24 @@
 # Validation report
 
-**Date:** 2026-11-05
+**Date:** 2026-11-06
 **Version:** 2.0.0
 
 ## Build and tests
 
 | Check | Result |
 | --- | --- |
-| `dotnet build -c Release -warnaserror` (Windows) | Passed, 0 warnings, 0 errors |
-| `dotnet test -c Release` (Windows) | 91 passed, 0 failed |
-| `dotnet test -c Release` (WSL Ubuntu 22.04, x64) | 91 passed, 0 failed |
+| `dotnet build -c Release` (Windows) | Passed, 0 warnings, 0 errors |
+| `dotnet test -c Release` (Windows) | 120 passed, 0 failed |
+| `dotnet test -c Debug` (Windows) | 120 passed, 0 failed |
 | `dotnet list package --vulnerable --include-transitive` | No vulnerable packages reported |
+
+## Static analysis
+
+| Check | Result |
+| --- | --- |
+| `jb inspectcode --severity=WARNING --swea` | 0 warnings, 0 errors |
+| `jb inspectcode --severity=SUGGESTION --swea` | Only unavoidable event-handler and design-hint notes |
+| `roslynator analyze --severity-level warning` | 0 diagnostics |
 
 ## Publishing
 
@@ -29,6 +37,7 @@ Windows and Linux:
 | Platform | Result |
 | --- | --- |
 | Windows 10/11 x64 | App launched; update check ran; stats call executed; log file written |
+| Windows 10/11 x64 (regression) | Compressed 2 files to ZIP, then repeated the batch and confirmed 2 skipped; verified 1 valid and 1 corrupt archive (1 success, 1 failure) |
 | Linux Mint 22.3 VM (Hyper-V, x64) | App launched at 1080x780; log on the right; About window opened; **2 files compressed to ZIP and both verified successfully** |
 | Linux x64 (WSL + Xvfb) | Window, log layout, statistics, and About window verified |
 | Linux arm64 | Build/publish validated; runtime validation pending ARM hardware |
@@ -62,4 +71,6 @@ The website catalog entry was deployed to the production VPS on 2026-11-05. The 
 ## Outstanding items
 
 1. Run the macOS and ARM64 runtime checks when hardware is available.
-2. Complete a real donation end-to-end test (the non-donor path and API contract are verified).
+2. Re-run the Linux automated suite and UI smoke tests on the current revision when the Linux VM or
+   WSL SDK is available.
+3. Complete a real donation end-to-end test (the non-donor path and API contract are verified).

@@ -77,16 +77,30 @@ The suite covers:
 - zip and 7z creation/readback
 - corrupt archive detection with CRC-32
 - batch compression, skip, delete-original, empty folder, missing folder
+- duplicate archive names, dotfiles, and portable file-name sanitization
+- cancellation cleanup with no partial archives
 - verification success/failure, supported extensions, subfolder moves
-- path sanitization and relative paths
-- update tag parsing, asset selection, HTTP failures
+- path sanitization, containment, relative paths, and platform case sensitivity
+- update tag parsing, asset selection, HTTP failures, timeout, and caller cancellation
 - donation success/failure/404/401/network/empty email
 - donation state persistence and corrupt state
 - statistics payload and error handling
 - bug report format and sink level filtering
-- view-model validation, donation banner, operation completion
+- view-model validation, donation banner, progress counts, and operation completion
 
 Tests never call live APIs; HTTP is stubbed with a custom `HttpMessageHandler`.
+
+## Static analysis
+
+The repository is kept clean under JetBrains InspectCode and Roslynator:
+
+```powershell
+jb inspectcode CSharp_BatchConvertToCompressedFile.sln `
+  --no-build --severity=WARNING --swea
+roslynator analyze CSharp_BatchConvertToCompressedFile.sln --severity-level warning
+```
+
+Both commands must report zero warnings before a change is merged.
 
 ## Linux UI smoke tests
 

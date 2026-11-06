@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Json;
 using BatchConvertToCompressedFile.Models;
 using BatchConvertToCompressedFile.Services;
 
@@ -7,6 +6,17 @@ namespace BatchConvertToCompressedFile.Tests;
 
 public sealed class UpdateServiceTests
 {
+    [Fact]
+    public void GitHubAsset_ExposesReleaseAssetProperties()
+    {
+        var asset = new GitHubAsset(
+            "BatchConvertToCompressedFile_2.0.0_win-x64.zip",
+            "https://example.test/win-x64.zip");
+
+        Assert.Equal("BatchConvertToCompressedFile_2.0.0_win-x64.zip", asset.Name);
+        Assert.Equal("https://example.test/win-x64.zip", asset.BrowserDownloadUrl);
+    }
+
     private const string NewerReleaseJson = """
         {
           "tag_name": "release_99.1.2",
@@ -97,6 +107,23 @@ public sealed class UpdateServiceTests
         var result = await service.CheckForUpdateAsync();
 
         Assert.False(result.IsNewVersionAvailable);
+    }
+
+    [Fact]
+    public async Task CheckForUpdateAsync_CallerCancellation_Throws()
+    {
+        var handler = new StubHttpMessageHandler(async (_, token) =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), token);
+            return StubHttpMessageHandler.Empty(HttpStatusCode.OK);
+        });
+        using var client = new HttpClient(handler);
+        using var service = new UpdateService(
+            "https://api.github.test/latest", client, new Version(1, 0, 0, 0), "win-x64");
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.CheckForUpdateAsync(cancellation.Token));
     }
 
     [Fact]

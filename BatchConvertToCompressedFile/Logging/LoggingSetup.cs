@@ -8,8 +8,7 @@ internal static class LoggingSetup
 {
     /// <summary>Creates the configured logger and installs it as <see cref="Log.Logger"/>.</summary>
     /// <param name="bugReportSink">Sink that forwards Warning+ events to the bug report API.</param>
-    /// <returns>The created logger.</returns>
-    public static ILogger CreateLogger(BugReportApiSink bugReportSink)
+    public static void CreateLogger(BugReportApiSink bugReportSink)
     {
         ArgumentNullException.ThrowIfNull(bugReportSink);
 
@@ -41,6 +40,5 @@ internal static class LoggingSetup
         }
 
         Log.Logger = configuration.CreateLogger();
-        return Log.Logger;
     }
 }

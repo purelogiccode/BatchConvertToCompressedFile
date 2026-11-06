@@ -17,7 +17,7 @@ internal static class ArchiveFormatExtensions
     public static string ToExtension(this ArchiveFormat format) =>
         format == ArchiveFormat.SevenZip ? ".7z" : ".zip";
 
-    /// <summary>Gets the SharpCompress archive type name used in log messages.</summary>
+    /// <summary>Gets the human-readable archive format name used in log messages.</summary>
     public static string ToDisplayName(this ArchiveFormat format) =>
         format == ArchiveFormat.SevenZip ? "7-Zip (.7z)" : "ZIP (.zip)";
 }

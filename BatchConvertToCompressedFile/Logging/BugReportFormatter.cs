@@ -11,20 +11,10 @@ internal static class OsEnvironmentInfo
     /// <returns>A human-readable OS version string.</returns>
     public static string GetOsVersionName()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return RuntimeInformation.OSDescription;
-        }
-
         if (OperatingSystem.IsLinux())
         {
             var prettyName = TryReadLinuxPrettyName();
             return string.IsNullOrWhiteSpace(prettyName) ? RuntimeInformation.OSDescription : prettyName;
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            return RuntimeInformation.OSDescription;
         }
 
         return RuntimeInformation.OSDescription;

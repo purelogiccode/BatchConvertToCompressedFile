@@ -1,6 +1,5 @@
 using BatchConvertToCompressedFile.Interfaces;
 using BatchConvertToCompressedFile.Models;
-using BatchConvertToCompressedFile.Services;
 using BatchConvertToCompressedFile.ViewModels;
 
 namespace BatchConvertToCompressedFile.Tests;
@@ -44,7 +43,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsDonationBannerVisible);
         Assert.NotNull(store.SavedState);
         Assert.True(store.SavedState!.Donated);
-        Assert.Equal("donor@example.com", store.SavedState.Email);
+        Assert.Null(store.SavedState.Email);
     }
 
     [Fact]
@@ -114,7 +113,50 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(completed);
         Assert.Equal(OperationType.Compression, completed!.OperationType);
         Assert.Equal(1, viewModel.SuccessFileCount);
+        Assert.Equal(0, viewModel.SkippedFileCount);
         Assert.False(viewModel.IsBusy);
+    }
+
+    [Fact]
+    public async Task StartCompressionAsync_WithSkippedFile_UpdatesSkippedCount()
+    {
+        using var input = new TempDirectory();
+        using var output = new TempDirectory();
+        input.CreateFile("one.txt");
+        var result = new BatchResult(1, 0, 0, 1, TimeSpan.FromSeconds(1), false);
+        var processor = new FakeProcessor(result);
+        using var viewModel = CreateViewModel(
+            new FakeDonationStateStore(DonationState.NotDonated), processor: processor);
+        viewModel.CompressionInputFolder = input.Path;
+        viewModel.CompressionOutputFolder = output.Path;
+
+        await viewModel.StartCompressionAsync();
+
+        Assert.Equal(1, viewModel.TotalFileCount);
+        Assert.Equal(0, viewModel.SuccessFileCount);
+        Assert.Equal(1, viewModel.SkippedFileCount);
+    }
+
+    [Fact]
+    public async Task StartCompressionAsync_ReportsProgressToLog()
+    {
+        using var input = new TempDirectory();
+        using var output = new TempDirectory();
+        input.CreateFile("one.txt");
+        var result = new BatchResult(1, 1, 0, 0, TimeSpan.FromSeconds(1), false);
+        var processor = new FakeProcessor(result)
+        {
+            ProgressToReport = new BatchProgress(
+                1, 1, "one.txt", "Compressed one.txt", 128, ProcessStatus.Success, SuccessCount: 1)
+        };
+        using var viewModel = CreateViewModel(
+            new FakeDonationStateStore(DonationState.NotDonated), processor: processor);
+        viewModel.CompressionInputFolder = input.Path;
+        viewModel.CompressionOutputFolder = output.Path;
+
+        await viewModel.StartCompressionAsync();
+
+        Assert.Contains(viewModel.LogEntries, line => line.Contains("Compressed one.txt", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -146,6 +188,40 @@ public sealed class MainWindowViewModelTests
 
         Assert.Single(system.OpenedUrls);
         Assert.Contains("donor%40example.com", system.OpenedUrls[0]);
+        Assert.Empty(system.OpenedFolders);
+    }
+
+    [Fact]
+    public async Task StartVerificationAsync_WithValidFolder_RunsProcessorAndReportsResult()
+    {
+        using var input = new TempDirectory();
+        var result = new BatchResult(1, 1, 0, 0, TimeSpan.FromSeconds(1), false);
+        var processor = new FakeProcessor(result);
+        using var viewModel = CreateViewModel(
+            new FakeDonationStateStore(DonationState.NotDonated), processor: processor);
+        viewModel.VerificationInputFolder = input.Path;
+
+        BatchCompletedEventArgs? completed = null;
+        viewModel.BatchCompleted += (_, args) => completed = args;
+
+        await viewModel.StartVerificationAsync();
+
+        Assert.Equal(1, processor.VerifyCalls);
+        Assert.NotNull(completed);
+        Assert.Equal(OperationType.Verification, completed!.OperationType);
+        Assert.Equal(1, viewModel.SuccessFileCount);
+    }
+
+    [Fact]
+    public void FormatSelection_IsMutuallyExclusive()
+    {
+        using var viewModel = CreateViewModel(new FakeDonationStateStore(DonationState.NotDonated));
+
+        viewModel.IsSevenZipFormat = true;
+        Assert.False(viewModel.IsZipFormat);
+
+        viewModel.IsZipFormat = true;
+        Assert.False(viewModel.IsSevenZipFormat);
     }
 
     private static MainWindowViewModel CreateViewModel(
@@ -198,12 +274,15 @@ public sealed class MainWindowViewModelTests
 
         public int VerifyCalls { get; private set; }
 
+        public BatchProgress? ProgressToReport { get; init; }
+
         public Task<BatchResult> CompressBatchAsync(
             CompressionRequest request,
             IProgress<BatchProgress>? progress,
             CancellationToken cancellationToken)
         {
             CompressCalls++;
+            if (ProgressToReport is not null) progress?.Report(ProgressToReport);
             return Task.FromResult(result);
         }
 
@@ -213,6 +292,7 @@ public sealed class MainWindowViewModelTests
             CancellationToken cancellationToken)
         {
             VerifyCalls++;
+            if (ProgressToReport is not null) progress?.Report(ProgressToReport);
             return Task.FromResult(result);
         }
     }

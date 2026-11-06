@@ -48,7 +48,9 @@ internal sealed class ApplicationStatsService : IApplicationStatsService, IDispo
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
 
-            using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
+            using var response = await _httpClient
+                .SendAsync(request, timeoutCts.Token)
+                .ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
                 Log.Information("Startup statistics recorded");

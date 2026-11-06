@@ -1,11 +1,20 @@
 using System.Net;
 using System.Text.Json;
+using BatchConvertToCompressedFile.Models;
 using BatchConvertToCompressedFile.Services;
 
 namespace BatchConvertToCompressedFile.Tests;
 
 public sealed class ApplicationStatsServiceTests
 {
+    [Fact]
+    public void ApplicationStatsRequest_ExposesPayloadProperties()
+    {
+        var request = new ApplicationStatsRequest("batchconverttocompressedfile", "2.0.0");
+
+        Assert.Equal("batchconverttocompressedfile", request.ApplicationId);
+        Assert.Equal("2.0.0", request.Version);
+    }
     [Fact]
     public async Task RecordStartupAsync_SendsBearerTokenAndPayload()
     {

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using BatchConvertToCompressedFile.Interfaces;
+using BatchConvertToCompressedFile.Logging;
 using BatchConvertToCompressedFile.Models;
 using BatchConvertToCompressedFile.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -25,8 +26,6 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
     private CancellationTokenSource? _cancellation;
     private long _bytesSinceLastSpeedUpdate;
-    private int _successFiles;
-    private int _failedFiles;
     private bool _disposed;
 
     /// <summary>Initializes a new main window view model.</summary>
@@ -46,8 +45,6 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
         _systemIntegration = systemIntegration ?? throw new ArgumentNullException(nameof(systemIntegration));
         _synchronizationContext = SynchronizationContext.Current;
         _speedUpdateTimer = new Timer(UpdateSpeedAndTime, null, Timeout.Infinite, Timeout.Infinite);
-
-        VersionText = $"Version {AppConfig.ApplicationVersionString}";
     }
 
     /// <summary>Raised when a batch operation completes so the view can show a summary dialog.</summary>
@@ -58,9 +55,6 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
     /// <summary>Gets the log lines shown in the main window.</summary>
     public ObservableCollection<string> LogEntries { get; } = [];
-
-    /// <summary>Gets the version label shown in the status bar.</summary>
-    public string VersionText { get; }
 
     /// <summary>Gets or sets the compression input folder.</summary>
     [ObservableProperty]
@@ -77,6 +71,16 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     /// <summary>Gets or sets whether .zip output is selected.</summary>
     [ObservableProperty]
     private bool _isZipFormat = true;
+
+    partial void OnIsSevenZipFormatChanged(bool value)
+    {
+        if (value) IsZipFormat = false;
+    }
+
+    partial void OnIsZipFormatChanged(bool value)
+    {
+        if (value) IsSevenZipFormat = false;
+    }
 
     /// <summary>Gets or sets whether original files are deleted after compression.</summary>
     [ObservableProperty]
@@ -146,6 +150,10 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     [ObservableProperty]
     private int _failedFileCount;
 
+    /// <summary>Gets or sets the skipped file count statistic.</summary>
+    [ObservableProperty]
+    private int _skippedFileCount;
+
     /// <summary>Gets or sets the elapsed processing time text.</summary>
     [ObservableProperty]
     private string _processingTime = "00:00:00";
@@ -174,13 +182,15 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        if (_disposed) return;
+
         try
         {
             var state = await _donationStateStore.LoadAsync(cancellationToken);
             IsDonationBannerVisible = !state.Donated;
             if (state.Donated)
             {
-                Log.Information("Donation state loaded: donated ({Email})", state.Email);
+                Log.Information("Donation state loaded: donated");
             }
         }
         catch (OperationCanceledException)
@@ -200,7 +210,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     {
         try
         {
-            if (IsBusy) return;
+            if (_disposed || IsBusy) return;
 
             if (!TryValidateCompression(out var error))
             {
@@ -218,7 +228,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Could not start the compression operation");
+            ExceptionLogging.LogHandled(ex, "Could not start the compression operation");
             ErrorOccurred?.Invoke(this, $"Could not start compression: {ex.Message}");
         }
     }
@@ -229,7 +239,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     {
         try
         {
-            if (IsBusy) return;
+            if (_disposed || IsBusy) return;
 
             if (!TryValidateVerification(out var error))
             {
@@ -249,7 +259,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Could not start the verification operation");
+            ExceptionLogging.LogHandled(ex, "Could not start the verification operation");
             ErrorOccurred?.Invoke(this, $"Could not start verification: {ex.Message}");
         }
     }
@@ -257,7 +267,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     /// <summary>Requests cancellation of the running operation.</summary>
     public void Cancel()
     {
-        if (!IsBusy) return;
+        if (_disposed || !IsBusy) return;
 
         _cancellation?.Cancel();
         StatusText = "Cancellation requested…";
@@ -268,7 +278,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task VerifyDonationAsync(CancellationToken cancellationToken = default)
     {
-        if (IsVerifyingDonation) return;
+        if (_disposed || IsVerifyingDonation) return;
 
         var email = DonationEmail.Trim();
         if (string.IsNullOrWhiteSpace(email))
@@ -287,14 +297,14 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
             if (!result.Donated)
             {
-                Log.Information("Donation verification did not find a donation for {Email}", email);
+                Log.Information("Donation verification did not find a donation");
                 return;
             }
 
             await _donationStateStore.SaveAsync(
-                new DonationState(true, email, DateTimeOffset.UtcNow), cancellationToken);
+                new DonationState(true, null, DateTimeOffset.UtcNow), cancellationToken);
             IsDonationBannerVisible = false;
-            Log.Information("Donation verified for {Email}; donation banner hidden", email);
+            Log.Information("Donation verified; donation banner hidden");
         }
         catch (OperationCanceledException)
         {
@@ -315,6 +325,8 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     /// <summary>Opens the donation page in the default browser.</summary>
     public void OpenDonationPage()
     {
+        if (_disposed) return;
+
         var url = _donationService.BuildDonationUrl(DonationEmail);
         if (!_systemIntegration.OpenUrl(url))
         {
@@ -328,14 +340,18 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
     {
         if (_disposed) return;
 
-        Post(() =>
+        Post(() => AppendLogCore(line));
+    }
+
+    private void AppendLogCore(string line)
+    {
+        if (_disposed) return;
+
+        LogEntries.Add(line);
+        while (LogEntries.Count > 2000)
         {
-            LogEntries.Add(line);
-            while (LogEntries.Count > 2000)
-            {
-                LogEntries.RemoveAt(0);
-            }
-        });
+            LogEntries.RemoveAt(0);
+        }
     }
 
     private async Task RunOperationAsync<TRequest>(OperationType operationType, TRequest request)
@@ -356,7 +372,9 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
         _cancellation?.Dispose();
         _cancellation = new CancellationTokenSource();
 
-        var progress = new Progress<BatchProgress>(OnProgress);
+        // Update the observable state synchronously on the UI thread. Progress<T> posts
+        // asynchronously and can leave stale callbacks running after the batch completes.
+        var progress = new SynchronousProgress<BatchProgress>(OnProgress);
 
         try
         {
@@ -369,9 +387,13 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
                 _ => throw new ArgumentOutOfRangeException(nameof(request))
             };
 
+            // Let any progress posted from a background thread drain before applying final counts.
+            await Task.Yield();
+
             TotalFileCount = result.TotalFiles;
             SuccessFileCount = result.SuccessCount;
             FailedFileCount = result.FailedCount;
+            SkippedFileCount = result.SkippedCount;
             StatusText = result.Canceled ? "Operation canceled." : "Ready";
             BatchCompleted?.Invoke(this, new BatchCompletedEventArgs(operationType, result));
         }
@@ -383,7 +405,7 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
         catch (Exception ex)
         {
             StatusText = "Operation failed.";
-            Log.Error(ex, "{Operation} operation failed", operationType);
+            ExceptionLogging.LogHandled(ex, "{Operation} operation failed", operationType);
             ErrorOccurred?.Invoke(
                 this, $"The {operationType.ToString().ToLowerInvariant()} operation failed: {ex.Message}");
         }
@@ -401,33 +423,25 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
     private void OnProgress(BatchProgress progress)
     {
-        ProgressMaximum = Math.Max(progress.TotalFiles, 1);
-        ProgressValue = progress.CurrentFile;
-        ProgressText = progress.Message;
-        TotalFileCount = progress.TotalFiles;
-        SuccessFileCount = _successFiles;
-        FailedFileCount = _failedFiles;
-
-        if (progress.CompletedBytes > 0)
+        Post(() =>
         {
-            AddBytesWritten(progress.CompletedBytes);
-        }
+            ProgressMaximum = Math.Max(progress.TotalFiles, 1);
+            ProgressValue = progress.CurrentFile;
+            ProgressText = string.IsNullOrWhiteSpace(progress.Message)
+                ? progress.CurrentFileName
+                : progress.Message;
+            TotalFileCount = progress.TotalFiles;
+            SuccessFileCount = progress.SuccessCount;
+            FailedFileCount = progress.FailedCount;
+            SkippedFileCount = progress.SkippedCount;
 
-        var message = progress.Message;
-        if (message.StartsWith("Verification failed", StringComparison.OrdinalIgnoreCase) ||
-            message.StartsWith("Could not compress", StringComparison.OrdinalIgnoreCase))
-        {
-            _failedFiles++;
-        }
-        else if (message.StartsWith("Verified", StringComparison.OrdinalIgnoreCase) ||
-                 message.StartsWith("Compressed", StringComparison.OrdinalIgnoreCase))
-        {
-            _successFiles++;
-        }
+            if (progress.CompletedBytes > 0)
+            {
+                AddBytesWritten(progress.CompletedBytes);
+            }
 
-        SuccessFileCount = _successFiles;
-        FailedFileCount = _failedFiles;
-        AppendLog($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
+            AppendLogCore($"[{DateTime.Now:HH:mm:ss.fff}] {progress.Message}");
+        });
     }
 
     private void StartSpeedTracking()
@@ -487,31 +501,38 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
     private void ResetStatistics()
     {
-        _successFiles = 0;
-        _failedFiles = 0;
         TotalFileCount = 0;
         SuccessFileCount = 0;
         FailedFileCount = 0;
+        SkippedFileCount = 0;
         ProcessingTime = "00:00:00";
         WriteSpeed = "0.0 MB/s";
     }
 
     private bool TryValidateCompression(out string error)
     {
-        if (string.IsNullOrWhiteSpace(CompressionInputFolder) ||
-            string.IsNullOrWhiteSpace(CompressionOutputFolder))
+        var inputFolder = CompressionInputFolder.Trim();
+        var outputFolder = CompressionOutputFolder.Trim();
+
+        if (string.IsNullOrWhiteSpace(inputFolder) || string.IsNullOrWhiteSpace(outputFolder))
         {
             error = "Please select both an input folder and an output folder for compression.";
             return false;
         }
 
-        if (!Directory.Exists(CompressionInputFolder))
+        if (!Directory.Exists(inputFolder))
         {
-            error = $"The input folder does not exist: {CompressionInputFolder}";
+            error = $"The input folder does not exist: {inputFolder}";
             return false;
         }
 
-        if (PathUtilities.AreSameFolder(CompressionInputFolder, CompressionOutputFolder))
+        if (File.Exists(outputFolder))
+        {
+            error = $"The output path is a file, not a folder: {outputFolder}";
+            return false;
+        }
+
+        if (PathUtilities.AreSameFolder(inputFolder, outputFolder))
         {
             error = "Input and output folders must be different.";
             return false;
@@ -523,44 +544,60 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
     private bool TryValidateVerification(out string error)
     {
-        if (string.IsNullOrWhiteSpace(VerificationInputFolder))
+        var inputFolder = VerificationInputFolder.Trim();
+        var successFolder = SuccessFolder.Trim();
+        var failedFolder = FailedFolder.Trim();
+
+        if (string.IsNullOrWhiteSpace(inputFolder))
         {
             error = "Please select the folder containing archives to verify.";
             return false;
         }
 
-        if (!Directory.Exists(VerificationInputFolder))
+        if (!Directory.Exists(inputFolder))
         {
-            error = $"The input folder does not exist: {VerificationInputFolder}";
+            error = $"The input folder does not exist: {inputFolder}";
             return false;
         }
 
-        if (MoveSuccessFiles && string.IsNullOrWhiteSpace(SuccessFolder))
+        if (MoveSuccessFiles && string.IsNullOrWhiteSpace(successFolder))
         {
             error = "Select a success folder or disable the move-success option.";
             return false;
         }
 
-        if (MoveFailedFiles && string.IsNullOrWhiteSpace(FailedFolder))
+        if (MoveSuccessFiles && File.Exists(successFolder))
+        {
+            error = $"The success path is a file, not a folder: {successFolder}";
+            return false;
+        }
+
+        if (MoveFailedFiles && string.IsNullOrWhiteSpace(failedFolder))
         {
             error = "Select a failed folder or disable the move-failed option.";
             return false;
         }
 
+        if (MoveFailedFiles && File.Exists(failedFolder))
+        {
+            error = $"The failed path is a file, not a folder: {failedFolder}";
+            return false;
+        }
+
         if (MoveSuccessFiles && MoveFailedFiles &&
-            PathUtilities.AreSameFolder(SuccessFolder, FailedFolder))
+            PathUtilities.AreSameFolder(successFolder, failedFolder))
         {
             error = "Success and failed folders must be different.";
             return false;
         }
 
-        if (MoveSuccessFiles && PathUtilities.AreSameFolder(SuccessFolder, VerificationInputFolder))
+        if (MoveSuccessFiles && PathUtilities.AreSameFolder(successFolder, inputFolder))
         {
             error = "The success folder must be different from the input folder.";
             return false;
         }
 
-        if (MoveFailedFiles && PathUtilities.AreSameFolder(FailedFolder, VerificationInputFolder))
+        if (MoveFailedFiles && PathUtilities.AreSameFolder(failedFolder, inputFolder))
         {
             error = "The failed folder must be different from the input folder.";
             return false;
@@ -572,6 +609,8 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
 
     private void Post(Action action)
     {
+        if (_disposed) return;
+
         if (_synchronizationContext is null || SynchronizationContext.Current == _synchronizationContext)
         {
             action();
@@ -592,7 +631,17 @@ internal sealed partial class MainWindowViewModel : ObservableObject, IDisposabl
         _speedUpdateTimer.Dispose();
         _operationTimer.Stop();
         _speedTimer.Stop();
-        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Invokes progress callbacks synchronously on the reporting thread.</summary>
+    /// <typeparam name="T">Progress value type.</typeparam>
+    private sealed class SynchronousProgress<T>(Action<T> handler) : IProgress<T>
+    {
+        private readonly Action<T> _handler =
+            handler ?? throw new ArgumentNullException(nameof(handler));
+
+        /// <inheritdoc />
+        public void Report(T value) => _handler(value);
     }
 }
 

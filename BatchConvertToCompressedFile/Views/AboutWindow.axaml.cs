@@ -26,22 +26,36 @@ internal partial class AboutWindow : Window
         RuntimeText.Text = RuntimeInformation.FrameworkDescription;
     }
 
-    private void OnWebsiteClick(object? sender, RoutedEventArgs e) =>
-        OpenLink(AppConfig.WebsiteUrl);
+    private async void OnWebsiteClickAsync(object? sender, RoutedEventArgs e) =>
+        await OpenLinkAsync(AppConfig.WebsiteUrl);
 
-    private void OnGitHubClick(object? sender, RoutedEventArgs e) =>
-        OpenLink(AppConfig.RepositoryUrl);
+    private async void OnGitHubClickAsync(object? sender, RoutedEventArgs e) =>
+        await OpenLinkAsync(AppConfig.RepositoryUrl);
 
-    private void OnDonateClick(object? sender, RoutedEventArgs e) =>
-        OpenLink(AppConfig.DonateUrl);
+    private async void OnDonateClickAsync(object? sender, RoutedEventArgs e) =>
+        await OpenLinkAsync(AppConfig.DonateUrl);
 
     private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
 
-    private void OpenLink(string url)
+    private async Task OpenLinkAsync(string url)
     {
-        if (!_systemIntegration.OpenUrl(url))
+        if (_systemIntegration.OpenUrl(url)) return;
+
+        Log.Information("Could not open link {Url}", url);
+        if (!IsVisible) return;
+
+        try
         {
-            Log.Warning("Could not open link {Url}", url);
+            await MessageDialog.ShowAsync(
+                this,
+                "Could not open link",
+                $"The link could not be opened in your browser:\n\n{url}",
+                MessageDialogButtons.Ok,
+                MessageDialogIcon.Warning);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Could not show the link error dialog");
         }
     }
 }

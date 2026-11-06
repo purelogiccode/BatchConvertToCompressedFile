@@ -33,11 +33,13 @@
                    ToolTip.Tip="Dialog title" />
       </Grid>
 
-      <TextBlock Grid.Row="1" x:Name="MessageText"
-                 Classes="secondary"
-                 TextWrapping="Wrap"
-                 MaxHeight="360"
-                 ToolTip.Tip="Dialog message" />
+      <ScrollViewer Grid.Row="1" MaxHeight="360" VerticalScrollBarVisibility="Auto"
+                    ToolTip.Tip="Scrollable dialog message">
+        <TextBlock x:Name="MessageText"
+                   Classes="secondary"
+                   TextWrapping="Wrap"
+                   ToolTip.Tip="Dialog message" />
+      </ScrollViewer>
 
       <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
         <Button x:Name="NoButton" Content="No" IsVisible="False"

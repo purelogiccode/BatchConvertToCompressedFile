@@ -22,7 +22,8 @@ internal sealed class SystemIntegrationService : ISystemIntegrationService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Could not open URL {Url}", url);
+            // Missing browser/file-manager integrations are expected user environment conditions.
+            Log.Information(ex, "Could not open URL {Url}", url);
             return false;
         }
     }
@@ -43,7 +44,8 @@ internal sealed class SystemIntegrationService : ISystemIntegrationService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Could not open folder {FolderPath}", folderPath);
+            // Missing file-manager integrations are expected user environment conditions.
+            Log.Information(ex, "Could not open folder {FolderPath}", folderPath);
             return false;
         }
     }

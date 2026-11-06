@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.Json;
 using BatchConvertToCompressedFile.Interfaces;
@@ -36,7 +35,7 @@ internal sealed class UpdateService : IUpdateService, IDisposable
         _httpClient = httpClient ?? new HttpClient();
         _ownsClient = httpClient is null;
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-            $"{AppConfig.ApplicationName}/{AppConfig.ApplicationVersionString}");
+            $"{AppConfig.ApplicationName}/{_currentVersion}");
         _httpClient.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
     }
@@ -49,7 +48,9 @@ internal sealed class UpdateService : IUpdateService, IDisposable
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
 
-            using var response = await _httpClient.GetAsync(_updateUrl, timeoutCts.Token);
+            using var response = await _httpClient
+                .GetAsync(_updateUrl, timeoutCts.Token)
+                .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 Log.Information(
@@ -58,9 +59,12 @@ internal sealed class UpdateService : IUpdateService, IDisposable
                 return UpdateCheckResult.UpToDate;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
-            var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(
-                stream, cancellationToken: timeoutCts.Token);
+            await using var stream = await response.Content
+                .ReadAsStreamAsync(timeoutCts.Token)
+                .ConfigureAwait(false);
+            var release = await JsonSerializer
+                .DeserializeAsync<GitHubRelease>(stream, cancellationToken: timeoutCts.Token)
+                .ConfigureAwait(false);
 
             if (release?.TagName is null)
             {
@@ -95,11 +99,16 @@ internal sealed class UpdateService : IUpdateService, IDisposable
                 asset?.BrowserDownloadUrl,
                 asset?.Name);
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            Log.Information("Update check timed out");
+            return UpdateCheckResult.UpToDate;
+        }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             // Offline machines, DNS failures, and proxy/WAF responses are expected conditions.
             Log.Information("Update check failed: {Message}", ex.Message);

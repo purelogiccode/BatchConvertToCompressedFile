@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using BatchConvertToCompressedFile.Interfaces;
+using BatchConvertToCompressedFile.Logging;
 using BatchConvertToCompressedFile.Models;
 
 namespace BatchConvertToCompressedFile.Services;
@@ -9,6 +10,13 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
 {
     private static readonly HashSet<string> SupportedVerificationExtensions =
         new(StringComparer.OrdinalIgnoreCase) { ".7z", ".zip", ".rar" };
+
+    private static readonly EnumerationOptions TopLevelEnumerationOptions = new()
+    {
+        RecurseSubdirectories = false,
+        IgnoreInaccessible = true,
+        AttributesToSkip = FileAttributes.ReparsePoint
+    };
 
     private readonly IArchiveService _archiveService;
 
@@ -36,12 +44,18 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
 
         try
         {
-            ValidateInputFolder(request.InputFolder);
-            Directory.CreateDirectory(request.OutputFolder);
+            await Task.Run(
+                () =>
+                {
+                    ValidateInputFolder(request.InputFolder);
+                    Directory.CreateDirectory(request.OutputFolder);
+                },
+                cancellationToken).ConfigureAwait(false);
 
             var files = await Task.Run(
-                () => Directory.GetFiles(request.InputFolder, "*", SearchOption.TopDirectoryOnly),
-                cancellationToken);
+                () => Directory.GetFiles(
+                    request.InputFolder, "*", TopLevelEnumerationOptions),
+                cancellationToken).ConfigureAwait(false);
 
             total = files.Length;
             Log.Information(
@@ -54,30 +68,47 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
                 return new BatchResult(0, 0, 0, 0, stopwatch.Elapsed, false);
             }
 
+            var extension = request.Format.ToExtension();
+            var reservedOutputPaths = new HashSet<string>(PathUtilities.PathComparer);
+
             for (var index = 0; index < files.Length; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var inputFile = files[index];
                 var fileName = Path.GetFileName(inputFile);
-                var outputFile = Path.Combine(
-                    request.OutputFolder,
-                    PathUtilities.SanitizeFileName(Path.GetFileNameWithoutExtension(inputFile)) +
-                    request.Format.ToExtension());
+                var baseName = GetArchiveBaseName(inputFile);
+                var outputFile = PathUtilities.ReserveUniqueFilePath(
+                    request.OutputFolder, baseName, extension, reservedOutputPaths);
 
                 progress?.Report(new BatchProgress(
-                    index + 1, total, fileName, $"Compressing file {index + 1} of {total}: {fileName}"));
+                    index + 1,
+                    total,
+                    fileName,
+                    $"Compressing file {index + 1} of {total}: {fileName}",
+                    SuccessCount: success,
+                    FailedCount: failed,
+                    SkippedCount: skipped));
 
                 if (File.Exists(outputFile))
                 {
                     skipped++;
                     Log.Information(
                         "Skipped {FileName}: archive already exists at {OutputFile}", fileName, outputFile);
+                    progress?.Report(new BatchProgress(
+                        index + 1,
+                        total,
+                        fileName,
+                        $"Skipped {fileName}: archive already exists",
+                        ItemStatus: ProcessStatus.Skipped,
+                        SuccessCount: success,
+                        FailedCount: failed,
+                        SkippedCount: skipped));
                     continue;
                 }
 
                 var status = await _archiveService.CompressFileAsync(
-                    inputFile, outputFile, request.Format, cancellationToken);
+                    inputFile, outputFile, request.Format, cancellationToken).ConfigureAwait(false);
 
                 switch (status)
                 {
@@ -85,7 +116,7 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
                         success++;
                         if (request.DeleteOriginals)
                         {
-                            await TryDeleteOriginalAsync(inputFile, cancellationToken);
+                            await TryDeleteOriginalAsync(inputFile, cancellationToken).ConfigureAwait(false);
                         }
 
                         break;
@@ -97,15 +128,25 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
                         break;
                 }
 
-                var completedBytes = SafeGetFileLength(outputFile);
+                var completedBytes = status == ProcessStatus.Success
+                    ? SafeGetFileLength(outputFile)
+                    : 0;
+
                 progress?.Report(new BatchProgress(
                     index + 1,
                     total,
                     fileName,
-                    status == ProcessStatus.Success
-                        ? $"Compressed {fileName}"
-                        : $"Could not compress {fileName}",
-                    completedBytes));
+                    status switch
+                    {
+                        ProcessStatus.Success => $"Compressed {fileName}",
+                        ProcessStatus.Skipped => $"Skipped {fileName}: archive already exists",
+                        _ => $"Could not compress {fileName}"
+                    },
+                    completedBytes,
+                    status,
+                    success,
+                    failed,
+                    skipped));
             }
         }
         catch (OperationCanceledException)
@@ -115,7 +156,7 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Compression batch failed");
+            Log.Debug(ex, "Compression batch failed");
             throw;
         }
 
@@ -138,34 +179,42 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
         var stopwatch = Stopwatch.StartNew();
         var success = 0;
         var failed = 0;
-        var skipped = 0;
+        const int skipped = 0;
         var total = 0;
         var canceled = false;
 
         try
         {
-            ValidateInputFolder(request.InputFolder);
+            await Task.Run(
+                () =>
+                {
+                    ValidateInputFolder(request.InputFolder);
 
-            if (request.MoveSuccessFiles && !string.IsNullOrWhiteSpace(request.SuccessFolder))
+                    if (request.MoveSuccessFiles && !string.IsNullOrWhiteSpace(request.SuccessFolder))
+                    {
+                        Directory.CreateDirectory(request.SuccessFolder);
+                    }
+
+                    if (request.MoveFailedFiles && !string.IsNullOrWhiteSpace(request.FailedFolder))
+                    {
+                        Directory.CreateDirectory(request.FailedFolder);
+                    }
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            var enumerationOptions = new EnumerationOptions
             {
-                Directory.CreateDirectory(request.SuccessFolder);
-            }
-
-            if (request.MoveFailedFiles && !string.IsNullOrWhiteSpace(request.FailedFolder))
-            {
-                Directory.CreateDirectory(request.FailedFolder);
-            }
-
-            var searchOption = request.IncludeSubfolders
-                ? SearchOption.AllDirectories
-                : SearchOption.TopDirectoryOnly;
+                RecurseSubdirectories = request.IncludeSubfolders,
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.ReparsePoint
+            };
 
             var archives = await Task.Run(
-                () => Directory.GetFiles(request.InputFolder, "*", searchOption)
+                () => Directory.GetFiles(request.InputFolder, "*", enumerationOptions)
                     .Where(file => SupportedVerificationExtensions.Contains(Path.GetExtension(file)))
                     .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
                     .ToArray(),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             total = archives.Length;
             Log.Information(
@@ -186,10 +235,20 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
                 var fileName = Path.GetFileName(archivePath);
 
                 progress?.Report(new BatchProgress(
-                    index + 1, total, fileName, $"Verifying file {index + 1} of {total}: {fileName}"));
+                    index + 1,
+                    total,
+                    fileName,
+                    $"Verifying file {index + 1} of {total}: {fileName}",
+                    SuccessCount: success,
+                    FailedCount: failed));
 
                 var archiveBytes = SafeGetFileLength(archivePath);
-                var isValid = await _archiveService.VerifyArchiveAsync(archivePath, cancellationToken);
+                var isValid = await _archiveService
+                    .VerifyArchiveAsync(archivePath, cancellationToken)
+                    .ConfigureAwait(false);
+
+                var moved = true;
+
                 if (isValid)
                 {
                     success++;
@@ -197,12 +256,12 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
 
                     if (request.MoveSuccessFiles && !string.IsNullOrWhiteSpace(request.SuccessFolder))
                     {
-                        await ArchiveFileMover.MoveAsync(
+                        moved = await ArchiveFileMover.MoveAsync(
                             archivePath,
                             request.SuccessFolder,
                             request.InputFolder,
                             request.IncludeSubfolders,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }
                 }
                 else
@@ -212,12 +271,12 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
 
                     if (request.MoveFailedFiles && !string.IsNullOrWhiteSpace(request.FailedFolder))
                     {
-                        await ArchiveFileMover.MoveAsync(
+                        moved = await ArchiveFileMover.MoveAsync(
                             archivePath,
                             request.FailedFolder,
                             request.InputFolder,
                             request.IncludeSubfolders,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }
                 }
 
@@ -225,8 +284,11 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
                     index + 1,
                     total,
                     fileName,
-                    isValid ? $"Verified {fileName}" : $"Verification failed: {fileName}",
-                    archiveBytes));
+                    BuildVerificationMessage(fileName, isValid, moved),
+                    archiveBytes,
+                    isValid ? ProcessStatus.Success : ProcessStatus.Failed,
+                    success,
+                    failed));
             }
         }
         catch (OperationCanceledException)
@@ -236,7 +298,7 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Verification batch failed");
+            Log.Debug(ex, "Verification batch failed");
             throw;
         }
 
@@ -246,6 +308,32 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
             "Verification batch finished: {Success} succeeded, {Failed} failed in {Elapsed}",
             success, failed, stopwatch.Elapsed);
         return result;
+    }
+
+    private static string GetArchiveBaseName(string inputFile)
+    {
+        var fileName = Path.GetFileName(inputFile);
+        var baseName = Path.GetFileNameWithoutExtension(fileName).TrimStart('.');
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            baseName = fileName.TrimStart('.');
+        }
+
+        return PathUtilities.SanitizeFileName(baseName);
+    }
+
+    private static string BuildVerificationMessage(string fileName, bool isValid, bool moved)
+    {
+        if (!isValid)
+        {
+            return moved
+                ? $"Verification failed: {fileName}"
+                : $"Verification failed: {fileName} (could not move)";
+        }
+
+        return moved
+            ? $"Verified {fileName}"
+            : $"Verified {fileName} (could not move)";
     }
 
     private static void ValidateInputFolder(string inputFolder)
@@ -260,7 +348,7 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
     {
         try
         {
-            await Task.Run(() => File.Delete(inputFile), cancellationToken);
+            await Task.Run(() => File.Delete(inputFile), cancellationToken).ConfigureAwait(false);
             Log.Information("Deleted original file {InputFile}", inputFile);
         }
         catch (OperationCanceledException)
@@ -269,7 +357,7 @@ internal sealed class BatchArchiveProcessor : IBatchArchiveProcessor
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Could not delete original file {InputFile}", inputFile);
+            ExceptionLogging.LogHandled(ex, "Could not delete original file {InputFile}", inputFile);
         }
     }
 

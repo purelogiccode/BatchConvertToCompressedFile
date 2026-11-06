@@ -63,7 +63,7 @@ internal static class AppConfig
     public static string StatsApiKey => GetKey("APP_STATS_API_KEY", DefaultBugReportApiKey);
 
     /// <summary>Gets the running application version.</summary>
-    public static Version ApplicationVersion =>
+    private static Version ApplicationVersion =>
         Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
 
     /// <summary>Gets the running application version as a display string.</summary>

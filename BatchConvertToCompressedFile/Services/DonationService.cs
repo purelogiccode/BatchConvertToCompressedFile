@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using BatchConvertToCompressedFile.Interfaces;
 using BatchConvertToCompressedFile.Models;
 
@@ -52,7 +53,9 @@ internal sealed class DonationService : IDonationService, IDisposable
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
 
-            using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
+            using var response = await _httpClient
+                .SendAsync(request, timeoutCts.Token)
+                .ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -66,7 +69,7 @@ internal sealed class DonationService : IDonationService, IDisposable
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                Log.Warning("Donation verification was rejected because the API key is invalid");
+                Log.Information("Donation verification was rejected because the API key is invalid");
                 return new DonationVerificationResult(
                     false, null, "The donation service rejected the request. Please update the application.");
             }
@@ -79,8 +82,9 @@ internal sealed class DonationService : IDonationService, IDisposable
                     false, null, "The donation service is temporarily unavailable. Please try again later.");
             }
 
-            var payload = await response.Content.ReadFromJsonAsync<DonationVerificationResponse>(
-                cancellationToken: cancellationToken);
+            var payload = await response.Content
+                .ReadFromJsonAsync<DonationVerificationResponse>(cancellationToken: timeoutCts.Token)
+                .ConfigureAwait(false);
 
             if (payload is null)
             {
@@ -111,6 +115,12 @@ internal sealed class DonationService : IDonationService, IDisposable
             return new DonationVerificationResult(
                 false, null, "Could not reach the donation service. Check your internet connection and try again.");
         }
+        catch (JsonException ex)
+        {
+            Log.Information("Donation verification returned an invalid response: {Message}", ex.Message);
+            return new DonationVerificationResult(
+                false, null, "The donation service returned an unexpected response. Please try again later.");
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Unexpected error during donation verification");
@@ -125,7 +135,8 @@ internal sealed class DonationService : IDonationService, IDisposable
         var url = AppConfig.DonateUrl;
         if (string.IsNullOrWhiteSpace(email)) return url;
 
-        return $"{url}&email={Uri.EscapeDataString(email.Trim())}";
+        var separator = url.Contains('?') ? '&' : '?';
+        return $"{url}{separator}email={Uri.EscapeDataString(email.Trim())}";
     }
 
     /// <inheritdoc />

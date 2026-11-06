@@ -54,16 +54,53 @@ public sealed class BatchArchiveProcessorTests
         using var output = new TempDirectory();
         input.CreateFile("existing.txt");
         await File.WriteAllTextAsync(Path.Combine(output.Path, "existing.zip"), "keep me");
+        var progress = new RecordingProgress();
 
         var result = await _processor.CompressBatchAsync(
             new CompressionRequest(input.Path, output.Path, ArchiveFormat.Zip, DeleteOriginals: false),
-            progress: null,
+            progress,
             CancellationToken.None);
 
         Assert.Equal(1, result.TotalFiles);
         Assert.Equal(0, result.SuccessCount);
         Assert.Equal(1, result.SkippedCount);
         Assert.Equal("keep me", await File.ReadAllTextAsync(Path.Combine(output.Path, "existing.zip")));
+        Assert.Equal(ProcessStatus.Skipped, progress.Values[^1].ItemStatus);
+        Assert.Equal(1, progress.Values[^1].SkippedCount);
+    }
+
+    [Fact]
+    public async Task CompressBatchAsync_SameBaseName_ProducesUniqueArchives()
+    {
+        using var input = new TempDirectory();
+        using var output = new TempDirectory();
+        input.CreateFile("same.txt");
+        input.CreateFile("same.md");
+
+        var result = await _processor.CompressBatchAsync(
+            new CompressionRequest(input.Path, output.Path, ArchiveFormat.Zip, DeleteOriginals: false),
+            progress: null,
+            CancellationToken.None);
+
+        Assert.Equal(2, result.SuccessCount);
+        Assert.True(File.Exists(Path.Combine(output.Path, "same.zip")));
+        Assert.True(File.Exists(Path.Combine(output.Path, "same (2).zip")));
+    }
+
+    [Fact]
+    public async Task CompressBatchAsync_DotFile_UsesVisibleArchiveName()
+    {
+        using var input = new TempDirectory();
+        using var output = new TempDirectory();
+        input.CreateFile(".gitignore");
+
+        var result = await _processor.CompressBatchAsync(
+            new CompressionRequest(input.Path, output.Path, ArchiveFormat.Zip, DeleteOriginals: false),
+            progress: null,
+            CancellationToken.None);
+
+        Assert.Equal(1, result.SuccessCount);
+        Assert.True(File.Exists(Path.Combine(output.Path, "gitignore.zip")));
     }
 
     [Fact]
@@ -188,5 +225,12 @@ public sealed class BatchArchiveProcessorTests
             cancellation.Token);
 
         Assert.True(result.Canceled);
+    }
+
+    private sealed class RecordingProgress : IProgress<BatchProgress>
+    {
+        public List<BatchProgress> Values { get; } = [];
+
+        public void Report(BatchProgress value) => Values.Add(value);
     }
 }

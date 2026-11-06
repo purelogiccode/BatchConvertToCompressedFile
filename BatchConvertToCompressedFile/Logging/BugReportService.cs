@@ -48,7 +48,9 @@ internal sealed class BugReportService : IBugReportService, IDisposable
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
 
-            using var response = await _httpClient.SendAsync(request, timeoutCts.Token);
+            using var response = await _httpClient
+                .SendAsync(request, timeoutCts.Token)
+                .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 Log.Debug("Bug report API returned {StatusCode} {ReasonPhrase}",

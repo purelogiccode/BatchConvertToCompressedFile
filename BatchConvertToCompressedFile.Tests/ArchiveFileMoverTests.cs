@@ -49,4 +49,20 @@ public sealed class ArchiveFileMoverTests
             ArchiveFileMover.MoveAsync(
                 source, destination.Path, input.Path, preserveSubfolders: false, cancellation.Token));
     }
+
+    [Fact]
+    public async Task MoveAsync_OutsideInputRoot_DoesNotEscapeDestination()
+    {
+        using var input = new TempDirectory();
+        using var destination = new TempDirectory();
+        using var outside = new TempDirectory();
+        var source = outside.CreateFile("file.zip");
+
+        var moved = await ArchiveFileMover.MoveAsync(
+            source, destination.Path, input.Path, preserveSubfolders: true, CancellationToken.None);
+
+        Assert.False(moved);
+        Assert.True(File.Exists(source));
+        Assert.False(File.Exists(Path.Combine(destination.Path, "file.zip")));
+    }
 }

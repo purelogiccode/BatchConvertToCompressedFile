@@ -9,6 +9,8 @@ using BatchConvertToCompressedFile.Views;
 namespace BatchConvertToCompressedFile;
 
 /// <summary>Avalonia application: composition root, global exception handling, and shutdown.</summary>
+// ReSharper disable once PartialTypeWithSinglePart
+// The XAML compiler generates the other part of this class.
 public partial class App : Application
 {
     private BugReportApiSink? _bugReportSink;

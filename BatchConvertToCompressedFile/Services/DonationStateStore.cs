@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BatchConvertToCompressedFile.Interfaces;
+using BatchConvertToCompressedFile.Logging;
 using BatchConvertToCompressedFile.Models;
 
 namespace BatchConvertToCompressedFile.Services;
@@ -29,8 +30,9 @@ internal sealed class DonationStateStore : IDonationStateStore
             if (!File.Exists(_filePath)) return DonationState.NotDonated;
 
             await using var stream = File.OpenRead(_filePath);
-            var state = await JsonSerializer.DeserializeAsync<DonationState>(
-                stream, SerializerOptions, cancellationToken);
+            var state = await JsonSerializer
+                .DeserializeAsync<DonationState>(stream, SerializerOptions, cancellationToken)
+                .ConfigureAwait(false);
 
             return state ?? DonationState.NotDonated;
         }
@@ -68,8 +70,9 @@ internal sealed class DonationStateStore : IDonationStateStore
                                  temporaryPath, FileMode.Create, FileAccess.Write, FileShare.None,
                                  4096, FileOptions.Asynchronous))
                 {
-                    await JsonSerializer.SerializeAsync(
-                        stream, state, SerializerOptions, cancellationToken);
+                    await JsonSerializer
+                        .SerializeAsync(stream, state, SerializerOptions, cancellationToken)
+                        .ConfigureAwait(false);
                 }
 
                 File.Move(temporaryPath, _filePath, overwrite: true);
@@ -85,7 +88,8 @@ internal sealed class DonationStateStore : IDonationStateStore
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Could not save donation state to {FilePath}", _filePath);
+            ExceptionLogging.LogHandled(
+                ex, "Could not save donation state to {FilePath}", _filePath);
         }
     }
 }

@@ -44,6 +44,22 @@ public sealed class ArchiveServiceTests
     }
 
     [Fact]
+    public async Task CompressFileAsync_ExistingOutput_ReturnsSkippedAndPreservesContent()
+    {
+        using var temp = new TempDirectory();
+        var input = temp.CreateFile("source.txt");
+        var output = Path.Combine(temp.Path, "source.zip");
+        await File.WriteAllTextAsync(output, "existing archive");
+
+        var status = await _service.CompressFileAsync(
+            input, output, ArchiveFormat.Zip, CancellationToken.None);
+
+        Assert.Equal(ProcessStatus.Skipped, status);
+        Assert.Equal("existing archive", await File.ReadAllTextAsync(output));
+        Assert.Empty(Directory.GetFiles(temp.Path, "*.tmp"));
+    }
+
+    [Fact]
     public async Task VerifyArchiveAsync_CorruptZip_ReturnsFalse()
     {
         using var temp = new TempDirectory();
@@ -79,11 +95,14 @@ public sealed class ArchiveServiceTests
     {
         using var temp = new TempDirectory();
         var input = temp.CreateFile("source.txt", 10_000);
+        var output = Path.Combine(temp.Path, "source.zip");
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            _service.CompressFileAsync(
-                input, Path.Combine(temp.Path, "source.zip"), ArchiveFormat.Zip, cancellation.Token));
+            _service.CompressFileAsync(input, output, ArchiveFormat.Zip, cancellation.Token));
+
+        Assert.False(File.Exists(output));
+        Assert.Empty(Directory.GetFiles(temp.Path, "*.tmp"));
     }
 }

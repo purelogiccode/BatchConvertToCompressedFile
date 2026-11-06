@@ -63,11 +63,11 @@
                    ToolTip.Tip="Donations keep the application free and maintained" />
 
         <StackPanel Orientation="Horizontal" Spacing="10">
-          <Button Content="Website" Click="OnWebsiteClick"
+          <Button Content="Website" Click="OnWebsiteClickAsync"
                   ToolTip.Tip="Open purelogiccode.com in your browser" />
-          <Button Content="GitHub" Click="OnGitHubClick"
+          <Button Content="GitHub" Click="OnGitHubClickAsync"
                   ToolTip.Tip="Open the project repository in your browser" />
-          <Button Content="Donate" Classes="primary" Click="OnDonateClick"
+          <Button Content="Donate" Classes="primary" Click="OnDonateClickAsync"
                   ToolTip.Tip="Open the donation page in your browser" />
         </StackPanel>
       </StackPanel>

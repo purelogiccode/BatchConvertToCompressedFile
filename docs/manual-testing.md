@@ -20,7 +20,7 @@ covers UI and platform smoke tests that need a real desktop session.
 dotnet test CSharp_BatchConvertToCompressedFile.sln -c Release
 ```
 
-Expected: **91 tests passed, 0 failed** (count grows as tests are added).
+Expected: **120 tests passed, 0 failed** (count grows as tests are added).
 
 ## Windows UI
 

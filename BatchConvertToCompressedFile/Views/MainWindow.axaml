@@ -13,12 +13,12 @@
         Opened="OnWindowOpenedAsync">
   <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
     <!-- Menu -->
-    <Menu Grid.Row="0">
+    <Menu Grid.Row="0" ToolTip.Tip="Application menus">
       <MenuItem Header="_File" ToolTip.Tip="Application file actions">
         <MenuItem Header="Open _Log Folder"
-                  Click="OnOpenLogFolderClick"
+                  Click="OnOpenLogFolderClickAsync"
                   ToolTip.Tip="Open the folder containing application log files" />
-        <Separator />
+        <Separator ToolTip.Tip="Menu separator" />
         <MenuItem Header="E_xit"
                   Click="OnExitClick"
                   ToolTip.Tip="Close the application" />
@@ -28,12 +28,12 @@
                   Click="OnCheckForUpdatesClickAsync"
                   ToolTip.Tip="Check GitHub for a newer release" />
         <MenuItem Header="Open _GitHub Repository"
-                  Click="OnOpenRepositoryClick"
+                  Click="OnOpenRepositoryClickAsync"
                   ToolTip.Tip="Open the project repository in your browser" />
         <MenuItem Header="_Donate"
                   Click="OnDonateClick"
                   ToolTip.Tip="Open the donation page in your browser" />
-        <Separator />
+        <Separator ToolTip.Tip="Menu separator" />
         <MenuItem Header="_About"
                   Click="OnAboutClickAsync"
                   ToolTip.Tip="Show application version and credits" />
@@ -94,7 +94,8 @@
     <!-- Main content: settings on the left, live log on the right, statistics below. -->
     <Grid Grid.Row="2" RowDefinitions="*,Auto" Margin="16,12,16,0">
       <Grid Grid.Row="0" ColumnDefinitions="3*,10,2*">
-        <TabControl Grid.Column="0" x:Name="MainTabControl" IsEnabled="{Binding !IsBusy}">
+        <TabControl Grid.Column="0" x:Name="MainTabControl" IsEnabled="{Binding !IsBusy}"
+                    ToolTip.Tip="Choose compression or archive verification">
         <TabItem Header="Compress Files" ToolTip.Tip="Create individual .7z or .zip archives from files in a folder">
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="18,16" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
@@ -249,7 +250,7 @@
               <TextBlock Text="Live log" Classes="h2" VerticalAlignment="Center"
                          ToolTip.Tip="Chronological application and operation log" />
               <Button Grid.Column="1" Content="Open log folder" Classes="link"
-                      Click="OnOpenLogFolderClick"
+                      Click="OnOpenLogFolderClickAsync"
                       ToolTip.Tip="Open the folder containing persistent log files" />
             </Grid>
             <ListBox Grid.Row="1" x:Name="LogList"
@@ -270,7 +271,7 @@
       </Grid>
 
       <!-- Statistics -->
-      <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,*" Margin="0,12,0,0" ColumnSpacing="10">
+      <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,*,*" Margin="0,12,0,0" ColumnSpacing="10">
         <Border Grid.Column="0" Classes="stat" ToolTip.Tip="Total number of files in the current batch">
           <StackPanel Spacing="2">
             <TextBlock Text="TOTAL FILES" Classes="label" ToolTip.Tip="Total files in the current batch" />
@@ -291,13 +292,20 @@
                        Foreground="{StaticResource DangerBrush}" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="3" Classes="stat" ToolTip.Tip="Elapsed time for the current operation">
+        <Border Grid.Column="3" Classes="stat" ToolTip.Tip="Files skipped because an archive already exists">
+          <StackPanel Spacing="2">
+            <TextBlock Text="SKIPPED" Classes="label" Foreground="{StaticResource WarningBrush}" ToolTip.Tip="Files skipped because an archive already exists" />
+            <TextBlock Text="{Binding SkippedFileCount}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Skipped file count"
+                       Foreground="{StaticResource WarningBrush}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="4" Classes="stat" ToolTip.Tip="Elapsed time for the current operation">
           <StackPanel Spacing="2">
             <TextBlock Text="ELAPSED" Classes="label" ToolTip.Tip="Elapsed time for the current operation" />
             <TextBlock Text="{Binding ProcessingTime}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Elapsed time in hours, minutes, and seconds" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="4" Classes="stat" ToolTip.Tip="Estimated disk write speed during the current operation">
+        <Border Grid.Column="5" Classes="stat" ToolTip.Tip="Estimated disk write speed during the current operation">
           <StackPanel Spacing="2">
             <TextBlock Text="WRITE SPEED" Classes="label" ToolTip.Tip="Approximate disk write speed" />
             <TextBlock Text="{Binding WriteSpeed}" FontSize="20" FontWeight="SemiBold" ToolTip.Tip="Current write speed in megabytes per second" />
@@ -330,7 +338,7 @@
       <Grid ColumnDefinitions="Auto,*,Auto">
         <TextBlock Grid.Column="0" Text="{Binding StatusText}" Classes="secondary" FontSize="12"
                    VerticalAlignment="Center" ToolTip.Tip="Current application status" />
-        <TextBlock Grid.Column="2" Text="{Binding VersionText}" Classes="muted" FontSize="12"
+        <TextBlock Grid.Column="2" x:Name="VersionTextBlock" Classes="muted" FontSize="12"
                    VerticalAlignment="Center" ToolTip.Tip="Installed application version" />
       </Grid>
     </Border>

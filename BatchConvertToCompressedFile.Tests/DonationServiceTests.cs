@@ -1,10 +1,19 @@
 using System.Net;
+using BatchConvertToCompressedFile.Models;
 using BatchConvertToCompressedFile.Services;
 
 namespace BatchConvertToCompressedFile.Tests;
 
 public sealed class DonationServiceTests
 {
+    [Fact]
+    public void DonationVerificationRequest_ExposesPayloadProperties()
+    {
+        var request = new DonationVerificationRequest("donor@example.com", "slug");
+
+        Assert.Equal("donor@example.com", request.Email);
+        Assert.Equal("slug", request.ApplicationSlug);
+    }
     [Fact]
     public async Task VerifyDonationAsync_Donated_ReturnsSuccess()
     {
@@ -89,6 +98,21 @@ public sealed class DonationServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Contains("temporarily unavailable", result.Message);
+    }
+
+    [Fact]
+    public async Task VerifyDonationAsync_InvalidJson_ReturnsFriendlyMessage()
+    {
+        var handler = new StubHttpMessageHandler((_, _) =>
+            Task.FromResult(StubHttpMessageHandler.Json(HttpStatusCode.OK, "{not-json")));
+        using var client = new HttpClient(handler);
+        using var service = new DonationService(
+            "https://example.test/verify", "secret", "batch-convert-to-compressed-file", client);
+
+        var result = await service.VerifyDonationAsync("nobody@example.com");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("unexpected response", result.Message);
     }
 
     [Fact]

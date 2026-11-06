@@ -53,29 +53,41 @@ internal sealed class BugReportApiSink : ILogEventSink, IDisposable
 
         try
         {
-            _processingTask.Wait(TimeSpan.FromSeconds(15));
+            if (!_processingTask.Wait(TimeSpan.FromSeconds(5)))
+            {
+                _cancellation.Cancel();
+                _processingTask.Wait(TimeSpan.FromSeconds(2));
+            }
         }
         catch (Exception ex)
         {
             Log.Debug("Bug report sink shutdown failed: {Message}", ex.Message);
         }
-
-        _cancellation.Cancel();
-        _cancellation.Dispose();
+        finally
+        {
+            if (_processingTask.IsCompleted)
+            {
+                _cancellation.Dispose();
+            }
+        }
     }
 
     private async Task ProcessQueueAsync(CancellationToken cancellationToken)
     {
         try
         {
-            while (await _channel.Reader.WaitToReadAsync(cancellationToken))
+            while (await _channel.Reader
+                       .WaitToReadAsync(cancellationToken)
+                       .ConfigureAwait(false))
             {
                 while (_channel.Reader.TryRead(out var logEvent))
                 {
                     try
                     {
                         var report = BugReportFormatter.Build(logEvent);
-                        await _bugReportService.SendBugReportAsync(report, cancellationToken);
+                        await _bugReportService
+                            .SendBugReportAsync(report, cancellationToken)
+                            .ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {

@@ -1,4 +1,4 @@
-using BatchConvertToCompressedFile.Models;
+using BatchConvertToCompressedFile.Logging;
 
 namespace BatchConvertToCompressedFile.Services;
 
@@ -22,6 +22,10 @@ internal static class ArchiveFileMover
         bool preserveSubfolders,
         CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFile);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputRoot);
+
         var fileName = Path.GetFileName(sourceFile);
         var relativeDirectory = preserveSubfolders
             ? PathUtilities.GetRelativeDirectory(inputRoot, sourceFile)
@@ -31,13 +35,25 @@ internal static class ArchiveFileMover
             ? destinationRoot
             : Path.Combine(destinationRoot, relativeDirectory);
 
+        if (!PathUtilities.IsSubPathOf(destinationRoot, targetDirectory))
+        {
+            Log.Information(
+                "Not moving {FileName}: destination path escapes {DestinationRoot}",
+                fileName, destinationRoot);
+            return false;
+        }
+
         var destinationFile = Path.Combine(targetDirectory, fileName);
 
         try
         {
-            Directory.CreateDirectory(targetDirectory);
+            await Task.Run(
+                () => Directory.CreateDirectory(targetDirectory),
+                cancellationToken).ConfigureAwait(false);
 
-            if (File.Exists(destinationFile))
+            if (await Task.Run(
+                    () => File.Exists(destinationFile),
+                    cancellationToken).ConfigureAwait(false))
             {
                 Log.Information(
                     "Not moving {FileName}: destination already exists at {DestinationFile}",
@@ -51,16 +67,25 @@ internal static class ArchiveFileMover
 
                 try
                 {
-                    File.Move(sourceFile, destinationFile);
+                    await MoveFileAsync(sourceFile, destinationFile, cancellationToken)
+                        .ConfigureAwait(false);
+
                     Log.Information("Moved {FileName} to {DestinationFile}", fileName, destinationFile);
                     return true;
+                }
+                catch (IOException) when (File.Exists(destinationFile))
+                {
+                    Log.Information(
+                        "Not moving {FileName}: destination appeared at {DestinationFile}",
+                        fileName, destinationFile);
+                    return false;
                 }
                 catch (IOException) when (attempt < MaxRetries)
                 {
                     Log.Debug(
                         "File {FileName} is in use; move retry {Attempt}/{MaxRetries} in {Delay} ms",
                         fileName, attempt, MaxRetries, RetryDelay.TotalMilliseconds);
-                    await Task.Delay(RetryDelay, cancellationToken);
+                    await Task.Delay(RetryDelay, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -70,9 +95,37 @@ internal static class ArchiveFileMover
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to move {FileName} to {DestinationRoot}", fileName, destinationRoot);
+            ExceptionLogging.LogHandled(
+                ex, "Failed to move {FileName} to {DestinationRoot}", fileName, destinationRoot);
         }
 
         return false;
     }
+
+    private static Task MoveFileAsync(
+        string sourceFile,
+        string destinationFile,
+        CancellationToken cancellationToken)
+    {
+        return Task.Run(
+            () =>
+            {
+                try
+                {
+                    File.Move(sourceFile, destinationFile);
+                }
+                catch (IOException ex) when (IsCrossDeviceError(ex))
+                {
+                    // File.Move uses rename on Unix, which fails across volumes. Copy first and
+                    // remove the source only after the copy completed.
+                    File.Copy(sourceFile, destinationFile, overwrite: false);
+                    File.Delete(sourceFile);
+                }
+            },
+            cancellationToken);
+    }
+
+    private static bool IsCrossDeviceError(IOException exception) =>
+        exception.HResult == 18 ||
+        (OperatingSystem.IsWindows() && (exception.HResult & 0xFFFF) == 17);
 }

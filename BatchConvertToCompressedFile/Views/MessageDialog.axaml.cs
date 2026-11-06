@@ -50,6 +50,7 @@ internal partial class MessageDialog : Window
         MessageDialogIcon icon)
     {
         ArgumentNullException.ThrowIfNull(owner);
+        if (!owner.IsVisible) return false;
 
         var dialog = new MessageDialog
         {
