@@ -26,14 +26,41 @@ internal partial class AboutWindow : Window
         RuntimeText.Text = RuntimeInformation.FrameworkDescription;
     }
 
-    private async void OnWebsiteClickAsync(object? sender, RoutedEventArgs e) =>
-        await OpenLinkAsync(AppConfig.WebsiteUrl);
+    private async void OnWebsiteClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await OpenLinkAsync(AppConfig.WebsiteUrl);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Could not open the website link");
+        }
+    }
 
-    private async void OnGitHubClickAsync(object? sender, RoutedEventArgs e) =>
-        await OpenLinkAsync(AppConfig.RepositoryUrl);
+    private async void OnGitHubClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await OpenLinkAsync(AppConfig.RepositoryUrl);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Could not open the GitHub link");
+        }
+    }
 
-    private async void OnDonateClickAsync(object? sender, RoutedEventArgs e) =>
-        await OpenLinkAsync(AppConfig.DonateUrl);
+    private async void OnDonateClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await OpenLinkAsync(AppConfig.DonateUrl);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Could not open the donation link");
+        }
+    }
 
     private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
 

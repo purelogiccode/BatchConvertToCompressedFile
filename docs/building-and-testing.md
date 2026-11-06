@@ -100,7 +100,8 @@ jb inspectcode CSharp_BatchConvertToCompressedFile.sln `
 roslynator analyze CSharp_BatchConvertToCompressedFile.sln --severity-level warning
 ```
 
-Both commands must report zero warnings before a change is merged.
+Both commands must report zero warnings before a change is merged. Every `async void` event handler
+must wrap its entire body in `try/catch` so a UI exception can never terminate the process.
 
 ## Linux UI smoke tests
 

@@ -17,7 +17,7 @@
 | Check | Result |
 | --- | --- |
 | `jb inspectcode --severity=WARNING --swea` | 0 warnings, 0 errors |
-| `jb inspectcode --severity=SUGGESTION --swea` | Only unavoidable event-handler and design-hint notes |
+| `jb inspectcode --severity=SUGGESTION --swea` | 0 async-void notes; 5 optional design-hint notes |
 | `roslynator analyze --severity-level warning` | 0 diagnostics |
 
 ## Publishing

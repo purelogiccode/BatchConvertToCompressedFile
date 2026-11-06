@@ -49,11 +49,11 @@ internal partial class MainWindow : Window
 
     private async void OnWindowOpenedAsync(object? sender, EventArgs e)
     {
-        if (_opened) return;
-        _opened = true;
-
         try
         {
+            if (_opened) return;
+            _opened = true;
+
             await _viewModel.InitializeAsync(_lifetimeCts.Token);
             await CheckForUpdatesAsync(manualCheck: false, _lifetimeCts.Token);
         }
@@ -67,30 +67,75 @@ internal partial class MainWindow : Window
         }
     }
 
-    private async void OnBrowseCompressionInputClickAsync(object? sender, RoutedEventArgs e) =>
-        await BrowseFolderAsync(
-            "Select the folder containing files to compress",
-            folder => _viewModel.CompressionInputFolder = folder);
+    private async void OnBrowseCompressionInputClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await BrowseFolderAsync(
+                "Select the folder containing files to compress",
+                folder => _viewModel.CompressionInputFolder = folder);
+        }
+        catch (Exception ex)
+        {
+            await HandleUiExceptionAsync(ex, "Could not select the compression input folder.");
+        }
+    }
 
-    private async void OnBrowseCompressionOutputClickAsync(object? sender, RoutedEventArgs e) =>
-        await BrowseFolderAsync(
-            "Select the output folder for compressed archives",
-            folder => _viewModel.CompressionOutputFolder = folder);
+    private async void OnBrowseCompressionOutputClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await BrowseFolderAsync(
+                "Select the output folder for compressed archives",
+                folder => _viewModel.CompressionOutputFolder = folder);
+        }
+        catch (Exception ex)
+        {
+            await HandleUiExceptionAsync(ex, "Could not select the compression output folder.");
+        }
+    }
 
-    private async void OnBrowseVerificationInputClickAsync(object? sender, RoutedEventArgs e) =>
-        await BrowseFolderAsync(
-            "Select the folder containing archives to verify",
-            folder => _viewModel.VerificationInputFolder = folder);
+    private async void OnBrowseVerificationInputClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await BrowseFolderAsync(
+                "Select the folder containing archives to verify",
+                folder => _viewModel.VerificationInputFolder = folder);
+        }
+        catch (Exception ex)
+        {
+            await HandleUiExceptionAsync(ex, "Could not select the verification input folder.");
+        }
+    }
 
-    private async void OnBrowseSuccessFolderClickAsync(object? sender, RoutedEventArgs e) =>
-        await BrowseFolderAsync(
-            "Select the folder for successfully verified archives",
-            folder => _viewModel.SuccessFolder = folder);
+    private async void OnBrowseSuccessFolderClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await BrowseFolderAsync(
+                "Select the folder for successfully verified archives",
+                folder => _viewModel.SuccessFolder = folder);
+        }
+        catch (Exception ex)
+        {
+            await HandleUiExceptionAsync(ex, "Could not select the success folder.");
+        }
+    }
 
-    private async void OnBrowseFailedFolderClickAsync(object? sender, RoutedEventArgs e) =>
-        await BrowseFolderAsync(
-            "Select the folder for failed archives",
-            folder => _viewModel.FailedFolder = folder);
+    private async void OnBrowseFailedFolderClickAsync(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await BrowseFolderAsync(
+                "Select the folder for failed archives",
+                folder => _viewModel.FailedFolder = folder);
+        }
+        catch (Exception ex)
+        {
+            await HandleUiExceptionAsync(ex, "Could not select the failed folder.");
+        }
+    }
 
     private async void OnStartCompressionClickAsync(object? sender, RoutedEventArgs e)
     {
@@ -141,10 +186,10 @@ internal partial class MainWindow : Window
 
     private async void OnOpenRepositoryClickAsync(object? sender, RoutedEventArgs e)
     {
-        if (_isClosing) return;
-
         try
         {
+            if (_isClosing) return;
+
             if (!_systemIntegration.OpenUrl(AppConfig.RepositoryUrl))
             {
                 await ShowErrorAsync($"Could not open {AppConfig.RepositoryUrl}.", null);
@@ -247,18 +292,10 @@ internal partial class MainWindow : Window
 
     private async Task BrowseFolderAsync(string title, Action<string> applyFolder)
     {
-        try
+        var folder = await PickFolderAsync(title);
+        if (!string.IsNullOrWhiteSpace(folder) && !_isClosing)
         {
-            var folder = await PickFolderAsync(title);
-            if (!string.IsNullOrWhiteSpace(folder) && !_isClosing)
-            {
-                applyFolder(folder);
-            }
-        }
-        catch (Exception ex)
-        {
-            ExceptionLogging.LogHandled(ex, "Could not open the folder picker");
-            await ShowErrorAsync("Could not open the folder picker.", ex);
+            applyFolder(folder);
         }
     }
 
@@ -335,17 +372,32 @@ internal partial class MainWindow : Window
         });
     }
 
-    private Task ShowErrorAsync(string message, Exception? exception)
+    private async Task HandleUiExceptionAsync(Exception exception, string message)
     {
-        if (_isClosing || !IsVisible) return Task.CompletedTask;
+        ExceptionLogging.LogHandled(exception, "{Message}", message);
+        await ShowErrorAsync(message, exception);
+    }
+
+    private async Task ShowErrorAsync(string message, Exception? exception)
+    {
+        if (_isClosing || !IsVisible) return;
 
         var details = exception is null ? message : $"{message}\n\n{exception.Message}";
-        return MessageDialog.ShowAsync(
-            this,
-            "Something went wrong",
-            details,
-            MessageDialogButtons.Ok,
-            MessageDialogIcon.Error);
+
+        try
+        {
+            await MessageDialog.ShowAsync(
+                this,
+                "Something went wrong",
+                details,
+                MessageDialogButtons.Ok,
+                MessageDialogIcon.Error);
+        }
+        catch (Exception ex)
+        {
+            // An error dialog must never turn a handled failure into an unhandled crash.
+            Log.Debug(ex, "Could not show the error dialog");
+        }
     }
 
     private static void ObserveFault(Task task, string message)
